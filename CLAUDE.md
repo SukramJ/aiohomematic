@@ -658,6 +658,90 @@ Non-negotiable rules for how the assistant works with the user:
 
 ---
 
+## Which model does which work
+
+Set by the owner for the go-fabric family on 2026-10-10 (go-fabric's
+`CLAUDE.md`); the review split of 2026-11-08 (go-fabric #456) likewise.
+Adopted here on 2026-11-08. A statement about CCU or Home Assistant behaviour that
+lands in this repo is cited later as fact — a comment that names a caller
+or a consumer, a docstring that states what the other side does, a
+`changelog.md` line — so the work that produces such statements gets
+the strongest model, and the work a guard checks may use a cheaper one. The
+agents in [Sub-Agent Delegation](#sub-agent-delegation) carry a default
+model each; the rows below decide when a call overrides it (`model:` on the
+Agent tool). Implementation defaults to Opus.
+
+| Work                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Model                                                           |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Analysis, planning, reviews of design, audits; anything written into `docs/`, an ADR under `docs/architecture/`, a migration guide or `changelog.md`, or a comment that names a CCU, OCCU-firmware, godevccu or Home Assistant behaviour; the central config with its password (`aiohomematic/central/config.py`) and every client that sends it (`aiohomematic/client/`), the callback RPC server (`aiohomematic/central/rpc_server.py`); _which_ guard gets built and its bite line; rebases and merge conflicts where `main` may have overtaken the change                                                                                                                                                                                                                                 | **Fable** (the default for this repo; also the `hunt` agent)    |
+| Implementation of a finished plan with guards behind it: a device profile once the pattern exists, a translation key with its i18n check, a test on an existing fixture, a `changelog.md` entry for a finished diff                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | **Opus** (the `impl` default; also what fast mode runs on)      |
+| **Review of a slice's pull request, split (owner decision 2026-11-08, go-fabric #456).** The code review — correctness, concurrency, error paths, tests, the fixed report shape — is **Opus**. On top of it **Fable** reads, bounded: every new comment or docstring that names a CCU, OCCU-firmware, godevccu or Home Assistant behaviour against the OCCU firmware, the recorded godevccu session and the Home Assistant release the integration targets, every line that enters `docs/`, an ADR under `docs/architecture/`, a migration guide or `changelog.md`, the paths of the first row, and the brief's decisions against the reference — the behavioural gaps a code review does not see. The load-bearing claims of the Opus review are verified before they reach the implementer. | **Opus**, then **Fable**                                        |
+| Work a test or generator checks immediately: `ruff format`, `prek run --all-files`, `script/check_i18n.py`, a table case on an existing pattern; search and first reading of a tree whose result a stronger model or the owner reads again                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | **Sonnet** (the `guard` default; `impl` with `model: "sonnet"`) |
+| Mechanical inventories whose answer is a list the caller can re-grep: which files reference X, which links are dead, which entries lack a counterpart                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | **Haiku** (`sweep` default)                                     |
+
+Sonnet never writes a claim about a CCU, OCCU-firmware, godevccu or Home Assistant behaviour into the repo, and
+never touches the paths named in the first row. Haiku returns lists, never
+verdicts. When in doubt about which row a task is in, it is in the first.
+
+---
+
+## Sub-Agent Delegation
+
+As go-fabric's and openccu-loom's rule (owner, 2026-10-10). The main
+conversation owns planning, contract and wire decisions, guard
+specifications, sub-agent steering, and final verification. It does not own
+typing.
+
+**Delegate what a gate can prove; keep what only a reader can accept.**
+Delegate freely: table cases, fakes, scaffolding, fixture updates, doc and
+link cleanups, version bumps across the changelog set, inventories and grep
+sweeps. Never delegate: the wire contract of the RPC clients and the callback server, credential handling, the public protocol surface consumed by the integration and openccu-loom-client, and _which_ guard gets
+built. Locating is delegable; reading is not.
+
+| Agent   | Default model | Use for                                                     |
+| ------- | ------------- | ----------------------------------------------------------- |
+| `impl`  | Opus          | scoped implementation with a stated acceptance command      |
+| `guard` | Sonnet        | tests from a caller-written guard spec, plus the bite proof |
+| `sweep` | Haiku         | read-only inventories and grep sweeps, high fan-out         |
+| `hunt`  | Fable         | adversarial read-only defect hunt, ranked candidates        |
+
+Each default is one row of
+[Which model does which work](#which-model-does-which-work); a call that
+falls into another row passes `model:` on the Agent tool — `impl` with
+`model: "sonnet"` for work a generator or formatter checks immediately.
+
+**Size CPU-bound fan-out from the host, never from a constant** — the owner
+works from a 4-core box and a 14-core box:
+
+```sh
+cores=$(nproc); agents=$(( (cores - 1) / share ))   # share = cores per agent
+```
+
+Check the 1-minute load first; if it is at or above the core count, run one
+CPU-bound agent and queue the rest. Eight concurrent agents is a practical
+ceiling whatever the core count. Every CPU-bound agent must **pin** its share
+in the command it runs (`pytest -n <share> tests/<area>`) — handing out a number without
+pinning it changes nothing. Read-only agents cost no core worth counting;
+6–8 is a practical ceiling there.
+
+Two hard rules: **no sub-agent runs the full gate (`pytest tests/`, `prek run --all-files`) or a
+repo-wide lint** — the full gate runs once, in the main conversation, at the
+end of the slice — and **no two writing agents in the same package**
+(disjoint file sets, or `isolation: "worktree"`).
+
+Every brief carries five things: the files and public surface plus one style
+reference; the acceptance command the agent runs itself; the invariants it
+touches; **stop conditions** (new dependency, API or wire change, credential
+handling, an ADR-shaped decision — a stop is a successful outcome); and a
+report format ≤ 250 words, large artefacts to the scratchpad as a path.
+
+**A report is a claim.** Read the diff, run the gate yourself. For `guard`,
+the acceptance artefact is not a green test but the **bite proof**: the named
+production line removed, the test observed red with its message, the line
+restored, green again.
+
+---
+
 ## Token Use
 
 Set by the owner on 2026-10-15, modelled on the same rules in
@@ -692,6 +776,14 @@ requirement; the rules below keep a task from costing twice what it needs.
 - **Agents read what the brief names.** A delegated agent gets the file list and the question,
   reads those and reports in a fixed shape; it does not survey the tree. One agent per question;
   several only for disjoint work.
+- **Push, pull request and tag are the session's own calls.** An
+  implementing agent works locally — branch, commits, guards — and
+  reports; the owner's session reads the diff, runs the gate, pushes,
+  opens the pull request and tags the merge commit; the owner merges. A
+  delegated push, pull request or tag is refused by the auto-mode
+  classifier ("Create Public Surface", 2026-11-07), and the review in
+  [Which model does which work](#which-model-does-which-work) sits
+  between the agent's report and the push anyway.
 
 ---
 

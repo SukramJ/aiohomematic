@@ -607,7 +607,9 @@ Version schema: `YYYY.MM.NN` (running number per month). Full rules:
 
 ### Implementation plan quality
 
-Plans written by Opus/Sonnet MUST be executable by Haiku without questions:
+A plan is a brief for the `impl` agent (Opus, see
+[Which model does which work](#which-model-does-which-work)); it MUST be executable without
+questions, and a stop condition reported back is a successful outcome, a guess is not:
 
 - Every ambiguity resolved upfront (no "TBD" / "decide later").
 - Exact file paths, complete code snippets, complete imports.
@@ -801,7 +803,7 @@ requirement; the rules below keep a task from costing twice what it needs.
 - ✅ Complete the Refactoring Completion Checklist before finishing.
 - ✅ `git tag --list` BEFORE touching `changelog.md`. Tagged versions are immutable.
 - ✅ Update `changelog.md` AND `aiohomematic/const.py:VERSION` together.
-- ✅ Plans must be Haiku-executable.
+- ✅ Plans are briefs the `impl` agent executes without questions.
 - ✅ Describe approach, wait for approval, ask clarifying questions.
 - ✅ Suggest edge cases and tests after each change.
 - ✅ Fix bugs test-first. Reflect on corrections.
@@ -825,7 +827,7 @@ requirement; the rules below keep a task from costing twice what it needs.
 
 1. **Describe** the approach, wait for approval.
 2. **Clarify** every ambiguity.
-3. **Plan** in detail (Haiku-executable).
+3. **Plan** in detail (a brief the `impl` agent executes without questions).
 4. **Implement** exactly as planned.
 5. **Clean** — remove every shim/alias.
 6. **Test** — `pytest tests/` (incl. contract tests).

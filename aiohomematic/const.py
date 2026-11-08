@@ -19,7 +19,7 @@ from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 
-VERSION: Final = "2026.11.4"
+VERSION: Final = "2026.11.5"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -2221,6 +2221,8 @@ class ServiceMessageData:
     timestamp: str
     msg_type: int
     message_code: str = ""
+    value: str = ""
+    value_text: str = ""
     display_name: str = ""
     msg_type_name: str = ""
     address: str = ""

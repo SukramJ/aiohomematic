@@ -50,6 +50,11 @@ if (oServices) {
             !# matching the CCU WebUI behavior (serviceMessages.htm checks oLastTrigger.Operations()).
             boolean bQuittable = false;
 
+            !# Alarm value and, for enum trigger datapoints, its value-list entry (e.g. ERROR 7 -> SABOTAGE).
+            !# Mirrors serviceMessages.htm, which resolves oAlarm.Value() against oLastTrigger.ValueList().
+            string sValue = "" # oAlarm.Value();
+            string sValueText = "";
+
             !# Extract address from alarm name (format: "AL-ADDRESS:X.PARAM")
             if (sRawName.Find("AL-") == 0) {
                 string sTmp = sRawName.Substr(3);
@@ -71,6 +76,15 @@ if (oServices) {
                     integer iOps = oTrigger.Operations();
                     if (iOps & 2) {
                         bQuittable = true;
+                    }
+                    if ((oTrigger.ValueType() == ivtInteger) && (oTrigger.ValueSubType() == istEnum)) {
+                        integer iValue = sValue.ToInteger();
+                        sValueText = oTrigger.ValueList().StrValueByIndex(";", iValue);
+                        if (sValueText) {
+                            sValueText = sValueText.UriEncode();
+                        } else {
+                            sValueText = "";
+                        }
                     }
                     integer iChnId = oTrigger.Channel();
                     if (iChnId) {
@@ -135,7 +149,9 @@ if (oServices) {
                 Write('"counter":' # iCounter # ',');
                 Write('"rooms":"' # sRooms # '",');
                 Write('"functions":"' # sFunctions # '",');
-                Write('"quittable":' # bQuittable # '}');
+                Write('"quittable":' # bQuittable # ',');
+                Write('"value":"' # sValue # '",');
+                Write('"value_text":"' # sValueText # '"}');
             }
         }
     }

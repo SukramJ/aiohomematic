@@ -1,3 +1,17 @@
+# Version 2026.11.5 (2026-11-08)
+
+## What's Changed
+
+### Fixed
+
+- **Service messages of enum parameters show the CCU's text instead of the raw code.** For
+  classic Homematic devices the CCU names the alarm after parameter and value
+  (`AL-NEQ0632439:1.ERROR-7`), which was shown verbatim as `ERROR-7`. The service message
+  script now resolves the alarm value against the trigger's value list, as the CCU WebUI does,
+  and `ServiceMessageData` carries `value` and `value_text`; the display name of an HM-Sec-SCo
+  sabotage reads `Sabotage` again
+  ([homematicip_local#1356](https://github.com/SukramJ/homematicip_local/discussions/1356)).
+
 # Version 2026.11.4 (2026-11-07)
 
 ## What's Changed

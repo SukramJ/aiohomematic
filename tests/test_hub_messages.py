@@ -78,6 +78,8 @@ class TestServiceMessageData:
         msg = ServiceMessageData(msg_id="1", name="test", timestamp="2026-01-01", msg_type=0)
         assert msg.msg_id == "1"
         assert msg.rooms == ()
+        assert msg.value == ""
+        assert msg.value_text == ""
         assert msg.functions == ()
         assert msg.quittable is False
         assert msg.counter == 0

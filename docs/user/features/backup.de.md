@@ -1,7 +1,7 @@
 ---
 translation_source: docs/user/features/backup.md
-translation_date: 2026-10-07
-translation_source_hash: 4301052e1f51
+translation_date: 2026-11-10
+translation_source_hash: b8e55de3017f
 ---
 
 # CCU-Sicherung
@@ -15,35 +15,35 @@ CCU-Systemsicherungen sind nur für **OpenCCU** (ehemals RaspberryMatic) verfüg
 
 ## Backup Agent
 
-Die Integration registriert einen **LocalBackupAgent**, der als Sicherungsspeicherort in der Home Assistant-Sicherungsoberfläche erscheint (**Settings** → **System** → **Backups**). Pro CCU-Konfigurationseintrag wird ein Agent registriert, sodass Multi-CCU-Setups separate Agents erhalten.
+Die Integration registriert einen Backup Agent, der als Sicherungsspeicherort **CCU <Name>** in der Home Assistant-Sicherungsoberfläche erscheint (**Settings** → **System** → **Backups**). Pro CCU-Konfigurationseintrag wird ein Agent registriert, sodass Multi-CCU-Setups separate Agents erhalten.
+
+Der Agent speichert die Home Assistant-Sicherung selbst **nicht**. Wird er als Speicherort ausgewählt, erhält jede Home Assistant-Sicherung zusätzlich eine CCU-Systemsicherung; das Home Assistant-Sicherungsarchiv (`.tar`) bleibt bei den übrigen ausgewählten Speicherorten (lokaler Speicher, Home Assistant Cloud, NAS, …). Es sollte daher immer mindestens einer davon zusätzlich ausgewählt sein.
 
 ### Funktionsweise
 
 Wenn eine Home Assistant-Sicherung erstellt und die CCU als Speicherort ausgewählt wird:
 
-1. Der Agent erstellt zunächst eine **CCU-Systemsicherung** (`.sbk`-Datei), indem er über ein ReGa-Skript eine vollständige Sicherung von der CCU anfordert
-2. Die CCU-Sicherung wird heruntergeladen und im konfigurierten Sicherungsverzeichnis gespeichert
-3. Die **HA-Sicherung** (`.tar`-Datei) wird im selben Verzeichnis abgelegt
-4. Eine **Metadaten-Datei** (`*_meta.json`) verknüpft die HA-Sicherung mit der zugehörigen CCU-Sicherung
+1. Der Agent erstellt eine **CCU-Systemsicherung** (`.sbk`-Datei), indem er über ein ReGa-Skript eine vollständige Sicherung von der CCU anfordert
+2. Die CCU-Sicherung wird heruntergeladen und im Sicherungsverzeichnis gespeichert
+3. Eine **Metadaten-Datei** (`<backup-id>_meta.json`) hält die HA-Sicherung und den Dateinamen der zugehörigen CCU-Sicherung fest
 
-Das bedeutet, dass jede auf der CCU gespeicherte HA-Sicherung von einer passenden CCU-Systemsicherung begleitet wird, was einen vollständigen Wiederherstellungspunkt für beide Systeme ergibt.
+Das bedeutet, dass jede mit ausgewählter CCU erstellte HA-Sicherung von einer passenden CCU-Systemsicherung begleitet wird, was einen Wiederherstellungspunkt für beide Systeme ergibt.
 
 ### Ausfallsicherheit
 
-- **CCU nicht erreichbar**: Ist die CCU beim Ausführen der HA-Sicherung nicht erreichbar, wird die HA-Sicherung ohne CCU-Sicherung gespeichert (eine Warnung wird protokolliert)
-- **CCU-Sicherung fehlgeschlagen**: Schlägt die CCU-Sicherung aus irgendeinem Grund fehl, wird die HA-Sicherung normal fortgesetzt — Fehler bei der CCU-Sicherung blockieren niemals HA-Sicherungen
-- **Metadaten-Konsistenz**: Können Metadaten nicht gespeichert werden, wird eine bereits erstellte CCU-Sicherung automatisch bereinigt
-- **Bereinigung verwaister Dateien**: Beim Auflisten von Sicherungen werden Metadaten-Dateien ohne zugehörige `.tar`-Datei automatisch entfernt
+- **CCU nicht erreichbar oder CCU-Sicherung fehlgeschlagen**: Ist die CCU nicht erreichbar oder schlägt die CCU-Sicherung fehl, wird keine CCU-Sicherung abgelegt und Home Assistant meldet die Sicherung für den Speicherort **CCU <Name>** als fehlgeschlagen. Die übrigen ausgewählten Speicherorte sind davon nicht betroffen und erhalten die HA-Sicherung weiterhin
+- **Metadaten-Konsistenz**: Können Metadaten nicht gespeichert werden, wird die bereits erstellte CCU-Sicherung automatisch bereinigt
+- **Bereinigung verwaister Dateien**: Beim Laden der Sicherungen entfernt der Agent Metadaten-Dateien ohne zugehörige `.sbk`-Datei automatisch
 
 ### Sicherungen verwalten
 
 Die gesamte Sicherungsverwaltung erfolgt über die Standard-Sicherungsoberfläche von Home Assistant:
 
-| Aktion            | Verhalten                                                                         |
-| ----------------- | --------------------------------------------------------------------------------- |
-| **Auflisten**     | Zeigt alle im CCU-Sicherungsverzeichnis gespeicherten HA-Sicherungen an           |
-| **Herunterladen** | Lädt die HA-Sicherungs-`.tar`-Datei herunter                                      |
-| **Löschen**       | Entfernt die HA-Sicherung, ihre Metadaten und die zugehörige CCU-`.sbk`-Sicherung |
+| Aktion            | Verhalten                                                                                                |
+| ----------------- | -------------------------------------------------------------------------------------------------------- |
+| **Auflisten**     | Zeigt die HA-Sicherungen an, zu denen eine CCU-Systemsicherung existiert                                 |
+| **Herunterladen** | Nicht unterstützt — der Agent hält kein HA-Sicherungsarchiv vor. Download über einen anderen Speicherort |
+| **Löschen**       | Entfernt die Metadaten und die zugehörige CCU-`.sbk`-Sicherung. Andere Speicherorte bleiben unberührt    |
 
 ---
 
@@ -51,13 +51,13 @@ Die gesamte Sicherungsverwaltung erfolgt über die Standard-Sicherungsoberfläch
 
 Die Integration erstellt eine **"Sicherung erstellen"**-Taste auf dem CCU-Gerät. Durch Betätigung wird eine eigenständige CCU-Systemsicherung (`.sbk`-Datei) bei Bedarf erstellt — unabhängig vom HA-Sicherungssystem.
 
-Die Taste wird nur für OpenCCU-Backends angelegt und ist verfügbar, solange die CCU erreichbar ist. Die resultierende Sicherungsdatei wird im konfigurierten Sicherungsverzeichnis gespeichert.
+Die Taste wird nur für OpenCCU-Backends angelegt und ist verfügbar, solange die CCU erreichbar ist. Die resultierende Sicherungsdatei wird im Sicherungsverzeichnis gespeichert.
 
 ---
 
 ## Sicherungsverzeichnis
 
-Sowohl der Backup Agent als auch die Sicherungsschaltfläche speichern Dateien in:
+Backup Agent, Sicherungsschaltfläche und Sicherungs-Aktion speichern Dateien in:
 
 ```
 <ha-config>/homematicip_local/backup/
@@ -67,23 +67,24 @@ Dieses Verzeichnis wird automatisch erstellt, wenn die erste Sicherung durchgef�
 
 | Dateityp      | Beschreibung                                                 |
 | ------------- | ------------------------------------------------------------ |
-| `*.tar`       | Home Assistant-Sicherungsarchive (erstellt durch HA Core)    |
 | `*_meta.json` | Metadaten, die HA-Sicherungen mit CCU-Sicherungen verknüpfen |
 | `*.sbk`       | CCU-Systemsicherungen                                        |
 
+Home Assistant-Sicherungsarchive (`.tar`) werden hier nicht abgelegt.
+
 ---
 
-## CCU-Sicherungs-Service
+## CCU-Sicherungs-Aktion
 
-Die Integration stellt außerdem einen `homematicip_local.create_ccu_backup`-Service zur Verwendung in Automationen bereit:
+Die Integration stellt außerdem die Aktion `homematicip_local.create_ccu_backup` zur Verwendung in Automationen bereit:
 
 ```yaml
-service: homematicip_local.create_ccu_backup
+action: homematicip_local.create_ccu_backup
 data:
   entry_id: "your_config_entry_id"
 ```
 
-Dieser erstellt und lädt eine CCU-Systemsicherung herunter, identisch zum Betätigen der Sicherungsschaltfläche.
+Diese erstellt und lädt eine CCU-Systemsicherung herunter, identisch zum Betätigen der Sicherungsschaltfläche. Die Aktion gibt `success`, `path`, `filename` und `size` der abgelegten Sicherung zurück, siehe [Home Assistant-Aktionen](homeassistant_actions.de.md#homematicip_localcreate_ccu_backup).
 
 ---
 
@@ -100,11 +101,11 @@ Eine CCU-Wiederherstellung ist erforderlich, wenn:
 
 ### Wiederherstellung über Home Assistant
 
-Auf der CCU gespeicherte Home Assistant-Sicherungen enthalten sowohl die HA-Sicherung (`.tar`) als auch die CCU-Systemsicherung (`.sbk`). Zur Wiederherstellung:
+Die Home Assistant-Sicherung (`.tar`) wird aus dem Speicherort wiederhergestellt, der sie enthält (lokaler Speicher, Home Assistant Cloud, NAS, …); der CCU-Speicherort steuert nur die CCU-Systemsicherung (`.sbk`) bei. Zur Wiederherstellung:
 
 1. Zu **Settings** -> **System** -> **Backups** navigieren
 2. Die gewünschte Sicherung auswählen
-3. Dem Home Assistant-Wiederherstellungsassistenten folgen, um die HA-Sicherung wiederherzustellen
+3. Dem Home Assistant-Wiederherstellungsassistenten folgen, um die HA-Sicherung aus einem ihrer anderen Speicherorte wiederherzustellen
 4. Die zugehörige CCU-Sicherung (`.sbk`-Datei) im Sicherungsverzeichnis suchen:
    ```
    <ha-config>/homematicip_local/backup/

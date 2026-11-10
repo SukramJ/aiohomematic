@@ -9,35 +9,35 @@ CCU system backups are only available for **OpenCCU** (formerly RaspberryMatic),
 
 ## Backup Agent
 
-The integration registers a **LocalBackupAgent** that appears as a backup storage location in the Home Assistant backup UI (**Settings** → **System** → **Backups**). One agent is registered per CCU config entry, so multi-CCU setups get separate agents.
+The integration registers a backup agent that appears as the backup location **CCU <name>** in the Home Assistant backup UI (**Settings** → **System** → **Backups**). One agent is registered per CCU config entry, so multi-CCU setups get separate agents.
+
+The agent does **not** store the Home Assistant backup itself. Selecting it as a backup location adds a CCU system backup to every Home Assistant backup; the Home Assistant backup archive (`.tar`) stays with the other selected locations (local storage, Home Assistant Cloud, NAS, …). Always select at least one of those as well.
 
 ### How it works
 
-When you create a Home Assistant backup and select the CCU as a storage location:
+When you create a Home Assistant backup and select the CCU as a backup location:
 
-1. The agent first creates a **CCU system backup** (`.sbk` file) by requesting a full backup from the CCU via ReGa script
-2. The CCU backup is downloaded and saved to the configured backup directory
-3. The **HA backup** (`.tar` file) is stored in the same directory
-4. A **metadata file** (`*_meta.json`) links the HA backup to the associated CCU backup
+1. The agent creates a **CCU system backup** (`.sbk` file) by requesting a full backup from the CCU via ReGa script
+2. The CCU backup is downloaded and saved to the backup directory
+3. A **metadata file** (`<backup-id>_meta.json`) records the HA backup and the name of the associated CCU backup file
 
-This means every HA backup stored on the CCU is accompanied by a matching CCU system backup, giving you a complete restore point for both systems.
+This means every HA backup created with the CCU selected is accompanied by a matching CCU system backup, giving you a restore point for both systems.
 
 ### Resilience
 
-- **CCU unavailable**: If the CCU is not reachable when the HA backup runs, the HA backup is saved without a CCU backup (a warning is logged)
-- **CCU backup failure**: If the CCU backup fails for any reason, the HA backup proceeds normally — CCU backup failures never block HA backups
-- **Metadata consistency**: If metadata cannot be saved, any already-created CCU backup is automatically cleaned up
-- **Orphan cleanup**: When listing backups, metadata files without a matching `.tar` file are automatically removed
+- **CCU unavailable or CCU backup failure**: If the CCU is not reachable or the CCU backup fails, no CCU backup is stored and Home Assistant reports the backup as failed for the location **CCU <name>**. The other selected backup locations are not affected and still receive the HA backup
+- **Metadata consistency**: If metadata cannot be saved, the already-created CCU backup is automatically cleaned up
+- **Orphan cleanup**: When the agent loads its backups, metadata files without a matching `.sbk` file are automatically removed
 
 ### Managing backups
 
 All backup management is done through the standard Home Assistant backup UI:
 
-| Action       | Behavior                                                                  |
-| ------------ | ------------------------------------------------------------------------- |
-| **List**     | Shows all HA backups stored in the CCU backup directory                   |
-| **Download** | Downloads the HA backup `.tar` file                                       |
-| **Delete**   | Removes the HA backup, its metadata, and the associated CCU `.sbk` backup |
+| Action       | Behavior                                                                                         |
+| ------------ | ------------------------------------------------------------------------------------------------ |
+| **List**     | Shows the HA backups for which a CCU system backup exists                                        |
+| **Download** | Not supported — the agent holds no HA backup archive. Download it from another backup location   |
+| **Delete**   | Removes the metadata and the associated CCU `.sbk` backup. Other backup locations are unaffected |
 
 ---
 
@@ -45,13 +45,13 @@ All backup management is done through the standard Home Assistant backup UI:
 
 The integration creates a **"Create Backup"** button entity on the CCU device. Pressing it creates a standalone CCU system backup (`.sbk` file) on demand — independent of the HA backup system.
 
-The button is only created for OpenCCU backends and is available as long as the CCU is reachable. The resulting backup file is saved to the configured backup directory.
+The button is only created for OpenCCU backends and is available as long as the CCU is reachable. The resulting backup file is saved to the backup directory.
 
 ---
 
 ## Backup Directory
 
-Both the Backup Agent and the Backup Button store files in:
+The Backup Agent, the Backup Button and the backup action store files in:
 
 ```
 <ha-config>/homematicip_local/backup/
@@ -59,25 +59,26 @@ Both the Backup Agent and the Backup Button store files in:
 
 This directory is created automatically when the first backup is made. It contains:
 
-| File type     | Description                                         |
-| ------------- | --------------------------------------------------- |
-| `*.tar`       | Home Assistant backup archives (created by HA core) |
-| `*_meta.json` | Metadata linking HA backups to CCU backups          |
-| `*.sbk`       | CCU system backups                                  |
+| File type     | Description                                |
+| ------------- | ------------------------------------------ |
+| `*_meta.json` | Metadata linking HA backups to CCU backups |
+| `*.sbk`       | CCU system backups                         |
+
+Home Assistant backup archives (`.tar`) are not stored here.
 
 ---
 
-## CCU Backup Service
+## CCU Backup Action
 
-The integration also provides a `homematicip_local.create_ccu_backup` service for use in automations:
+The integration also provides the `homematicip_local.create_ccu_backup` action for use in automations:
 
 ```yaml
-service: homematicip_local.create_ccu_backup
+action: homematicip_local.create_ccu_backup
 data:
   entry_id: "your_config_entry_id"
 ```
 
-This creates and downloads a CCU system backup, identical to pressing the backup button.
+This creates and downloads a CCU system backup, identical to pressing the backup button. The action returns `success`, `path`, `filename` and `size` of the stored backup, see [Home Assistant actions](homeassistant_actions.md#homematicip_localcreate_ccu_backup).
 
 ---
 
@@ -94,11 +95,11 @@ A CCU restore is needed when:
 
 ### Restore via Home Assistant
 
-Home Assistant backups stored on the CCU include both the HA backup (`.tar`) and the CCU system backup (`.sbk`). To restore:
+The Home Assistant backup (`.tar`) is restored from the backup location that holds it (local storage, Home Assistant Cloud, NAS, …); the CCU location only contributes the CCU system backup (`.sbk`). To restore:
 
 1. Go to **Settings** -> **System** -> **Backups**
 2. Select the backup you want to restore
-3. Follow the Home Assistant restore wizard to restore the HA backup
+3. Follow the Home Assistant restore wizard to restore the HA backup from one of its other backup locations
 4. Locate the matching CCU backup (`.sbk` file) in the backup directory:
    ```
    <ha-config>/homematicip_local/backup/

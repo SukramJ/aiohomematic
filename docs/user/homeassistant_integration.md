@@ -281,6 +281,50 @@ If a new device model doesn't have proper custom entities:
 
 ---
 
+## Device Firmware Updates {#device-firmware-updates}
+
+Every device that the CCU reports as updatable gets an **Update** entity. Which backends support this is listed in the [Backend Feature Matrix](#backend-feature-matrix).
+
+### What the Update Entity Shows
+
+| Field                             | Devices on HmIP-RF                                                                                             | Devices on BidCos-RF / BidCos-Wired                 |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| Installed version                 | Firmware version reported by the CCU                                                                           | Firmware version reported by the CCU                |
+| Latest version                    | The available firmware, but only in the states `READY_FOR_UPDATE`, `DO_UPDATE_PENDING` and `PERFORMING_UPDATE` | The available firmware as soon as the CCU names one |
+| In progress                       | In the states `DO_UPDATE_PENDING` and `PERFORMING_UPDATE`                                                      | Never shown                                         |
+| Attribute `firmware_update_state` | The firmware state as reported by the CCU                                                                      | The firmware state as reported by the CCU           |
+
+In every other state (for example `NEW_FIRMWARE_AVAILABLE` or `DELIVER_FIRMWARE_IMAGE`) an HmIP-RF device reports its installed version as the latest version, so Home Assistant does not offer an update yet.
+
+### Installing an Update
+
+**Install** on the Update entity sends the install command for this device to the CCU. The same command is available as the **Update** button in the firmware table of the [Device Configuration Panel](features/config_panel.md#firmware).
+
+### When the Status Is Refreshed
+
+Firmware data is part of the device description, not a device parameter. It therefore does not arrive with the regular value events; the integration re-reads it from the CCU at these moments:
+
+| Trigger                                         | When                                 | Devices                                                                   |
+| ----------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------- |
+| Update started from Home Assistant              | 10 seconds later, then 60 seconds on | The device being updated                                                  |
+| Check for running updates                       | Every 5 minutes                      | Devices in `READY_FOR_UPDATE`, `DO_UPDATE_PENDING` or `PERFORMING_UPDATE` |
+| Check for firmware being delivered              | Every hour                           | Devices in `DELIVER_FIRMWARE_IMAGE` or `LIVE_DELIVER_FIRMWARE_IMAGE`      |
+| General check                                   | Every 6 hours                        | All updatable devices                                                     |
+| CCU notifies a firmware change (`updateDevice`) | On notification                      | The notified device is reloaded                                           |
+| Manual refresh                                  | On demand                            | See below                                                                 |
+
+The intervals are fixed and cannot be configured in the integration.
+
+An update that takes longer than the two refreshes after the start is picked up by the 5-minute check. Until then the Update entity can still show the update as pending or in progress although the device has already finished.
+
+To refresh immediately:
+
+- Call [`homematicip_local.update_device_firmware_data`](features/homeassistant_actions.md#homematicip_localupdate_device_firmware_data) (all devices).
+- Call `homeassistant.update_entity` for the Update entity (this device only).
+- Click **Refresh Firmware Data** in the [Device Configuration Panel](features/config_panel.md#firmware).
+
+---
+
 ## Adding New Devices (Pairing)
 
 ### Install Mode

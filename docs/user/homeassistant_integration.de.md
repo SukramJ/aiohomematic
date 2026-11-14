@@ -287,6 +287,50 @@ Wenn ein neues Gerätemodell keine passenden benutzerdefinierten Entities hat:
 
 ---
 
+## Geräte-Firmware-Updates {#device-firmware-updates}
+
+Jedes Gerät, das die CCU als aktualisierbar meldet, erhält eine **Update**-Entity. Welche Backends das unterstützen, steht in der Backend-Feature-Matrix weiter oben.
+
+### Was die Update-Entity anzeigt
+
+| Feld                             | Geräte an HmIP-RF                                                                                                  | Geräte an BidCos-RF / BidCos-Wired                 |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------- |
+| Installierte Version             | Von der CCU gemeldete Firmware-Version                                                                             | Von der CCU gemeldete Firmware-Version             |
+| Neueste Version                  | Die verfügbare Firmware, aber nur in den Zuständen `READY_FOR_UPDATE`, `DO_UPDATE_PENDING` und `PERFORMING_UPDATE` | Die verfügbare Firmware, sobald die CCU eine nennt |
+| In Bearbeitung                   | In den Zuständen `DO_UPDATE_PENDING` und `PERFORMING_UPDATE`                                                       | Wird nie angezeigt                                 |
+| Attribut `firmware_update_state` | Der von der CCU gemeldete Firmware-Zustand                                                                         | Der von der CCU gemeldete Firmware-Zustand         |
+
+In jedem anderen Zustand (zum Beispiel `NEW_FIRMWARE_AVAILABLE` oder `DELIVER_FIRMWARE_IMAGE`) meldet ein Gerät an HmIP-RF seine installierte Version als neueste Version. Home Assistant bietet dann noch kein Update an.
+
+### Ein Update installieren
+
+**Installieren** an der Update-Entity sendet den Installationsbefehl für dieses Gerät an die CCU. Derselbe Befehl steht als Schaltfläche **Aktualisieren** in der Firmware-Tabelle des [Gerätekonfigurations-Panels](features/config_panel.md#firmware) zur Verfügung.
+
+### Wann der Status aktualisiert wird
+
+Firmware-Daten gehören zur Gerätebeschreibung und sind kein Geräteparameter. Sie kommen deshalb nicht mit den regulären Wert-Ereignissen an; die Integration liest sie zu diesen Zeitpunkten erneut von der CCU:
+
+| Auslöser                                           | Wann                                        | Geräte                                                                     |
+| -------------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------- |
+| Update aus Home Assistant gestartet                | 10 Sekunden später, dann 60 Sekunden darauf | Das aktualisierte Gerät                                                    |
+| Prüfung auf laufende Updates                       | Alle 5 Minuten                              | Geräte in `READY_FOR_UPDATE`, `DO_UPDATE_PENDING` oder `PERFORMING_UPDATE` |
+| Prüfung auf Firmware in Übertragung                | Stündlich                                   | Geräte in `DELIVER_FIRMWARE_IMAGE` oder `LIVE_DELIVER_FIRMWARE_IMAGE`      |
+| Allgemeine Prüfung                                 | Alle 6 Stunden                              | Alle aktualisierbaren Geräte                                               |
+| CCU meldet eine Firmware-Änderung (`updateDevice`) | Bei Meldung                                 | Das gemeldete Gerät wird neu geladen                                       |
+| Manuelle Aktualisierung                            | Bei Bedarf                                  | Siehe unten                                                                |
+
+Die Intervalle sind fest und lassen sich in der Integration nicht einstellen.
+
+Ein Update, das länger dauert als die beiden Abfragen nach dem Start, wird von der 5-Minuten-Prüfung erfasst. Bis dahin kann die Update-Entity das Update noch als ausstehend oder laufend anzeigen, obwohl das Gerät bereits fertig ist.
+
+Sofort aktualisieren:
+
+- [`homematicip_local.update_device_firmware_data`](features/homeassistant_actions.md#homematicip_localupdate_device_firmware_data) aufrufen (alle Geräte).
+- `homeassistant.update_entity` für die Update-Entity aufrufen (nur dieses Gerät).
+- Im [Gerätekonfigurations-Panel](features/config_panel.md#firmware) auf **Firmware-Daten aktualisieren** klicken.
+
+---
+
 ## Neue Geräte hinzufügen (Pairing)
 
 ### Anlernmodus

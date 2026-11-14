@@ -450,7 +450,7 @@ A sortable and filterable table showing firmware status for all devices:
 Click **Refresh Firmware Data** to fetch the latest firmware information from the CCU.
 
 !!! note
-Firmware updates are managed by the CCU, not by this integration. The panel shows the status for informational purposes. To perform updates, use the CCU WebUI or the device's own update mechanism.
+Devices with an updatable firmware show an **Update** button that sends the install command to the CCU. The table is not refreshed automatically afterwards; see [Device Firmware Updates](../homeassistant_integration.md#device-firmware-updates) for when the status is re-read.
 
 ### Install Mode {#install-mode}
 

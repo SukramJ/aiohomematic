@@ -456,7 +456,7 @@ Eine sortier- und filterbare Tabelle, die den Firmware-Status aller Geräte zeig
 Auf **Firmware-Daten aktualisieren** klicken, um die neuesten Firmware-Informationen von der CCU abzurufen.
 
 !!! note
-Firmware-Updates werden von der CCU verwaltet, nicht von dieser Integration. Das Panel zeigt den Status zu Informationszwecken an. Für Updates die CCU WebUI oder den geräteeigenen Aktualisierungsmechanismus verwenden.
+Geräte mit aktualisierbarer Firmware zeigen eine Schaltfläche **Aktualisieren**, die den Installationsbefehl an die CCU sendet. Die Tabelle wird danach nicht automatisch aktualisiert; wann der Status erneut gelesen wird, steht unter [Geräte-Firmware-Updates](../homeassistant_integration.md#device-firmware-updates).
 
 ### Anlernmodus {#install-mode}
 

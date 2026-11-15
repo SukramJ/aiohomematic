@@ -62,7 +62,7 @@ repos:
     hooks:
       - id: codespell
         args:
-          - --ignore-words-list=ans,hass,offen
+          - --ignore-words-list=ans,hass,ist,offen
           - --skip="./.*,*.csv,*.json"
           - --quiet-level=2
         exclude_types: [csv, json]

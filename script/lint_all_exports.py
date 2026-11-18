@@ -265,9 +265,8 @@ def get_exported_symbols(init_path: Path) -> set[str]:
                     symbols.add(name)
 
         # Handle locally defined classes and functions
-        elif isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
-            if not node.name.startswith("_"):
-                symbols.add(node.name)
+        elif isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)) and not node.name.startswith("_"):
+            symbols.add(node.name)
 
     return symbols
 

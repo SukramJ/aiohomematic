@@ -269,9 +269,10 @@ def validate_cross_parameters(
             ) and (val < val_min or val > val_max):
                 errors[rule.param] = rule.error_key
 
-        elif rule.rule == "not_equal" and rule.param_a and rule.param_b:
-            if merged[rule.param_a] == merged[rule.param_b]:
-                errors[rule.param_a] = rule.error_key
+        elif (
+            rule.rule == "not_equal" and rule.param_a and rule.param_b and merged[rule.param_a] == merged[rule.param_b]
+        ):
+            errors[rule.param_a] = rule.error_key
 
     return errors
 

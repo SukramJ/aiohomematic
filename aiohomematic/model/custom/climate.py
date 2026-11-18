@@ -627,9 +627,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
                 await self.set_mode(mode=ClimateMode.AUTO, collector=collector)
                 await self._dp_boost_mode.send_value(value=False, collector=collector, retry=True)
             if (profile_idx := self._profiles.get(profile)) is not None:
-                await self._dp_week_program_pointer.send_value(
-                    value=_HM_WEEK_PROFILE_POINTERS_TO_NAMES[profile_idx], collector=collector
-                )
+                await self._dp_week_program_pointer.send_value(value=profile_idx, collector=collector)
 
     def _compute_capabilities(self) -> ClimateCapabilities:
         """Compute static capabilities. RF thermostats support profiles."""

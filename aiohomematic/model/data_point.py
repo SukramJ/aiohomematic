@@ -1415,11 +1415,17 @@ class BaseParameterDataPoint[
         self._type: ParameterType = ParameterType(parameter_data["TYPE"])
         self._values = tuple(parameter_data["VALUE_LIST"]) if parameter_data.get("VALUE_LIST") else None
         # Determine if ENUM values should be sent as index (int) or string.
-        # HM devices use integer MIN/MAX/DEFAULT → send as index.
-        # HmIP devices use string MIN/MAX/DEFAULT → send as string.
+        # HM devices use an index as MIN → send as index. The CCU returns that index as a
+        # string for some devices (e.g. "0" for the HM-CC-VG-1 heating group).
+        # HmIP devices use a value list entry as MIN → send as string.
         raw_min = parameter_data["MIN"]
         self._enum_value_is_index: bool = (
-            self._type == ParameterType.ENUM and self._values is not None and isinstance(raw_min, int)
+            self._type == ParameterType.ENUM
+            and self._values is not None
+            and (
+                isinstance(raw_min, int)
+                or (isinstance(raw_min, str) and raw_min.isdigit() and raw_min not in self._values)
+            )
         )
         self._max: ParameterT = self._convert_value(value=parameter_data["MAX"])
         self._min: ParameterT = self._convert_value(value=raw_min)

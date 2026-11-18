@@ -525,6 +525,52 @@ class TestCustomDpRfThermostat:
             (TEST_DEVICES, True, None, None),
         ],
     )
+    async def test_cerfthermostat_profile_with_string_bounds(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Send the week program as index when the CCU describes MIN/MAX as strings (HM-CC-VG-1)."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        climate: CustomDpRfThermostat = cast(
+            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
+        )
+        climate._dp_week_program_pointer._assign_parameter_data(
+            parameter_data={
+                "TYPE": "ENUM",
+                "VALUE_LIST": ["WEEK PROGRAM 1", "WEEK PROGRAM 2", "WEEK PROGRAM 3"],
+                "MIN": "0",
+                "MAX": "2",
+                "DEFAULT": "0",
+                "FLAGS": 1,
+                "OPERATIONS": 3,
+            }
+        )
+        climate._dp_control_mode._current_value = _ModeHm.AUTO
+        climate._dp_week_program_pointer._current_value = 0
+
+        await climate.set_profile(profile=ClimateProfile.WEEK_PROGRAM_2)
+        assert mock_client.method_calls[-1] == call.set_value(
+            channel_address="VCU0000341",
+            paramset_key=ParamsetKey.MASTER,
+            parameter="WEEK_PROGRAM_POINTER",
+            value=1,
+            wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
+            retry=True,
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
     async def test_cerfthermostat_with_profiles(
         self,
         central_client_factory_with_homegear_client,

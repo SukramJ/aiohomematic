@@ -59,6 +59,61 @@ class TestGenericSelect:
             (TEST_DEVICES, True, None, None),
         ],
     )
+    @pytest.mark.parametrize(
+        ("raw_min", "raw_max", "expected_value"),
+        [
+            (0, 1, 1),
+            ("0", "1", 1),
+            ("CLOSED", "OPEN", "OPEN"),
+        ],
+    )
+    async def test_hmselect_enum_index_by_bounds(
+        self,
+        central_client_factory_with_homegear_client,
+        raw_min: int | str,
+        raw_max: int | str,
+        expected_value: int | str,
+    ) -> None:
+        """Send an ENUM as index when MIN is an index, also when the CCU returns it as a string."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        select: DpSelect = cast(
+            DpSelect,
+            central.query_facade.get_generic_data_point(channel_address="VCU6354483:1", parameter="WINDOW_STATE"),
+        )
+        select._assign_parameter_data(
+            parameter_data={
+                "TYPE": "ENUM",
+                "VALUE_LIST": ["CLOSED", "OPEN"],
+                "MIN": raw_min,
+                "MAX": raw_max,
+                "DEFAULT": raw_min,
+                "FLAGS": 1,
+                "OPERATIONS": 7,
+            }
+        )
+
+        await select.send_value(value="OPEN")
+        assert mock_client.method_calls[-1] == call.set_value(
+            channel_address="VCU6354483:1",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="WINDOW_STATE",
+            value=expected_value,
+            priority=CommandPriority.HIGH,
+            retry=True,
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
     async def test_hmselect_invalid_value(self, central_client_factory_with_homegear_client) -> None:
         """Test sending invalid value."""
         central, _mock_client, _ = central_client_factory_with_homegear_client

@@ -1,3 +1,16 @@
+# Version 2026.11.6 (2026-11-18)
+
+## What's Changed
+
+### Fixed
+
+- **Switching the week program of a heating group no longer breaks its CCU settings page.** For
+  HM-CC-VG-1 the CCU describes MIN/MAX of `WEEK_PROGRAM_POINTER` as strings (`"0"`), so the
+  value was sent as text (`'WEEK PROGRAM 2'`) instead of the index, and the device settings page
+  in the CCU WebUI stayed broken until a CCU reboot. An ENUM whose MIN is a numeric string outside
+  the value list is now sent as index, and the RF climate data point sends the week program as
+  index ([homematicip_local#1379](https://github.com/SukramJ/homematicip_local/issues/1379)).
+
 # Version 2026.11.5 (2026-11-08)
 
 ## What's Changed

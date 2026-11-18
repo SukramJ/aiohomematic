@@ -392,8 +392,7 @@ BaseDataPoint is the core class for all device parameters and controls.
 
 **Timer Operations:**
 
-- **`set_on_time`** - Set on time
-- **`set_timer_on_time`** - Set timer on time
+- **`set_timer_on_time`** - Stage the on time for the next `turn_on`
 
 **Siren Operations:**
 

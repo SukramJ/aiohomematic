@@ -648,7 +648,7 @@ class Device(DeviceProtocol, LogContextMixin):
     @inspector
     async def create_central_links(self) -> None:
         """Create a central links to support press events on all channels with click events."""
-        if self.relevant_for_central_link_management:  # pylint: disable=using-constant-test
+        if self.relevant_for_central_link_management:
             for channel in self._channels.values():
                 await channel.create_central_link()
 
@@ -934,7 +934,7 @@ class Device(DeviceProtocol, LogContextMixin):
     @inspector
     async def remove_central_links(self) -> None:
         """Remove central links."""
-        if self.relevant_for_central_link_management:  # pylint: disable=using-constant-test
+        if self.relevant_for_central_link_management:
             for channel in self._channels.values():
                 await channel.remove_central_link()
 

@@ -68,7 +68,7 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
             return DataPointUsage.DATA_POINT
         if (force_enabled := self._enabled_by_channel_operation_mode) is None:
             return self._get_data_point_usage()
-        return DataPointUsage.DATA_POINT if force_enabled else DataPointUsage.NO_CREATE  # pylint: disable=using-constant-test
+        return DataPointUsage.DATA_POINT if force_enabled else DataPointUsage.NO_CREATE
 
     async def event(self, *, value: Any, received_at: datetime) -> None:
         """Handle event for which this data_point has subscribed."""

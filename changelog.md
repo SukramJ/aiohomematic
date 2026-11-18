@@ -11,6 +11,21 @@
   the value list is now sent as index, and the RF climate data point sends the week program as
   index ([homematicip_local#1379](https://github.com/SukramJ/homematicip_local/issues/1379)).
 
+- **A timed switch-on reaches a generic switch that is already on.** `DpSwitch.set_on_time()`
+  wrote `ON_TIME` at once, and the following `turn_on()` dropped `STATE=True` as "no state
+  change" when the switch was already on, so `switch_set_on_time` + `switch.turn_on` did
+  nothing on CUxD and other generic switches. The generic switch now behaves like
+  `CustomDpSwitch`: an on-time is staged with `set_timer_on_time()`, and `turn_on()` writes
+  `ON_TIME` and then `STATE=True` even when the switch is already on; `turn_off()` drops a
+  staged on-time
+  ([homematicip_local#1378](https://github.com/SukramJ/homematicip_local/issues/1378)).
+
+### Breaking Changes
+
+- **`DpSwitch.set_on_time()` is removed.** Stage the on-time with `set_timer_on_time(on_time=…)`
+  before `turn_on()`, or pass `turn_on(on_time=…)`. Migration guide:
+  `docs/migrations/generic_switch_on_time_migration_2026_11.md`.
+
 # Version 2026.11.5 (2026-11-08)
 
 ## What's Changed

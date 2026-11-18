@@ -22,6 +22,7 @@ aiohomematic follows these principles for breaking changes:
 | --------- | ----------------------------------------------- | --------------------------------------------------------------------- |
 | 2026.8.7  | CUxD `unique_id`s are scoped by central id      | [CUxD unique_id scoping](cuxd_unique_id_scoping_migration_2026_08.md) |
 | 2026.10.1 | godevccu replaces pydevccu (`Backend.GODEVCCU`) | [godevccu](godevccu_migration_2026_10.md)                             |
+| 2026.11.6 | `DpSwitch.set_on_time()` removed                | [Generic switch on-time](generic_switch_on_time_migration_2026_11.md) |
 
 ### 2025.x
 

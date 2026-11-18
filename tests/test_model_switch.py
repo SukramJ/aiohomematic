@@ -263,7 +263,6 @@ class TestGenericSwitch:
         assert switch.service_method_names == (
             "load_data_point_value",
             "send_value",
-            "set_on_time",
             "turn_off",
             "turn_on",
         )
@@ -305,23 +304,65 @@ class TestGenericSwitch:
             retry=True,
         )
         assert switch.value is True
-        await switch.set_on_time(on_time=35.4)
-        assert mock_client.method_calls[-1] == call.set_value(
+        await switch.turn_off()
+
+        await switch.turn_on()
+        call_count = len(mock_client.method_calls)
+        await switch.turn_on()
+        assert call_count == len(mock_client.method_calls)
+
+        await switch.turn_off()
+        call_count = len(mock_client.method_calls)
+        await switch.turn_off()
+        assert call_count == len(mock_client.method_calls)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_hmswitch_staged_on_time_when_already_on(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """A staged on_time sends ON_TIME and STATE although the switch is already on (homematicip_local#1378)."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        switch: DpSwitch = cast(
+            DpSwitch, central.query_facade.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE")
+        )
+        await switch.turn_on()
+        assert switch.value is True
+
+        switch.set_timer_on_time(on_time=35.4)
+        await switch.turn_on()
+        assert mock_client.method_calls[-2] == call.set_value(
             channel_address="VCU2128127:4",
             paramset_key=ParamsetKey.VALUES,
             parameter="ON_TIME",
             value=35.4,
         )
+        assert mock_client.method_calls[-1] == call.set_value(
+            channel_address="VCU2128127:4",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="STATE",
+            value=True,
+            priority=CommandPriority.HIGH,
+            retry=True,
+        )
+        assert switch.timer_on_time is None
+        assert switch.timer_on_time_running is True
 
-        await switch.turn_on()
-        call_count = len(mock_client.method_calls)
-        await switch.turn_on()
-        assert call_count == len(mock_client.method_calls)
-
+        switch.set_timer_on_time(on_time=10)
         await switch.turn_off()
-        call_count = len(mock_client.method_calls)
-        await switch.turn_off()
-        assert call_count == len(mock_client.method_calls)
+        assert switch.timer_on_time is None
+        assert switch.timer_on_time_running is False
 
 
 class TestSysvarSwitch:

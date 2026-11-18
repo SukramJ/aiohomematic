@@ -6,6 +6,8 @@ Generic switch data points for toggle operations.
 Public API of this module is defined by __all__.
 """
 
+from typing import override
+
 from aiohomematic.const import DataPointCategory, Parameter, ParameterType
 from aiohomematic.decorators import inspector
 from aiohomematic.model.data_point import CallParameterCollector
@@ -23,26 +25,31 @@ class DpSwitch(GenericDataPoint[bool | None, bool]):
 
     _category = DataPointCategory.SWITCH
 
-    @inspector
-    async def set_on_time(self, *, on_time: float) -> None:
-        """Set the on time value in seconds."""
-        await self._client.set_value(
-            channel_address=self._channel.address,
-            paramset_key=self._paramset_key,
-            parameter=Parameter.ON_TIME,
-            value=float(on_time),
-        )
+    @override
+    def is_state_change(self, *, value: bool | None) -> bool:
+        """Check if the state changes; a staged or running on_time always switches on."""
+        if value is True and (self.timer_on_time_running or self.timer_on_time is not None):
+            return True
+        return super().is_state_change(value=value)
 
     @inspector
     async def turn_off(self, *, collector: CallParameterCollector | None = None) -> None:
-        """Turn the switch off."""
+        """Turn the switch off and drop a staged on_time."""
+        self.reset_timer_on_time()
         await self.send_value(value=False, collector=collector)
 
     @inspector
     async def turn_on(self, *, on_time: float | None = None, collector: CallParameterCollector | None = None) -> None:
-        """Turn the switch on."""
+        """Turn the switch on, bounded by an explicit or staged on_time."""
         if on_time is not None:
-            await self.set_on_time(on_time=on_time)
+            self.set_timer_on_time(on_time=on_time)
+        if (timer := self.get_and_start_timer()) is not None:
+            await self._client.set_value(
+                channel_address=self._channel.address,
+                paramset_key=self._paramset_key,
+                parameter=Parameter.ON_TIME,
+                value=float(timer),
+            )
         await self.send_value(value=True, collector=collector)
 
     def _get_value(self) -> bool | None:

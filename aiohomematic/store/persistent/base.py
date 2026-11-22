@@ -23,6 +23,7 @@ BasePersistentCache separates concerns:
 """
 
 from abc import ABC, abstractmethod
+import asyncio
 from datetime import datetime
 import logging
 from typing import TYPE_CHECKING, Any, Final
@@ -178,12 +179,15 @@ class BasePersistentCache(ABC):
         # Remove schema version before processing
         data.pop("_schema_version", None)
 
-        if (loaded_hash := hash_sha256(value=data)) == self._last_hash_saved:
+        # Hashing and normalizing a large cache is pure CPU work. Run it off the
+        # event loop so the loop keeps serving I/O meanwhile (homematicip_local#1389).
+        if (loaded_hash := await asyncio.to_thread(hash_sha256, value=data)) == self._last_hash_saved:
             return DataOperationResult.NO_LOAD
+        prepared = await asyncio.to_thread(self._prepare_loaded_content, data=data)
 
         self._content.clear()
         self._content.update(data)
-        self._process_loaded_content(data=data)
+        self._process_loaded_content(data=prepared)
         self._last_hash_saved = loaded_hash
         return DataOperationResult.LOAD_SUCCESS
 
@@ -279,6 +283,19 @@ class BasePersistentCache(ABC):
 
         """
         raise NotImplementedError
+
+    def _prepare_loaded_content(self, *, data: dict[str, Any]) -> dict[str, Any]:
+        """
+        Return the loaded data in the form _process_loaded_content expects.
+
+        Runs in a worker thread: it must only read data and must not touch the
+        instance state. Subclasses move CPU-heavy normalization here.
+
+        Args:
+            data: Raw data loaded from storage, without the schema version.
+
+        """
+        return data
 
     @abstractmethod
     def _process_loaded_content(self, *, data: dict[str, Any]) -> None:

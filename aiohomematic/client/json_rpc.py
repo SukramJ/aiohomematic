@@ -1968,7 +1968,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             raise
 
         except ClientConnectorCertificateError as cccerr:
-            self.clear_session()
+            self._mark_session_unverified()
             self._circuit_breaker.record_failure()
             message = f"ClientConnectorCertificateError[{cccerr}]"
             if self._tls is False and cccerr.ssl is True:
@@ -1995,7 +1995,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 i18n.tr(key="exception.client.json_post.connector_certificate_error", reason=message)
             ) from cccerr
         except ClientConnectorError as cceerr:
-            self.clear_session()
+            self._mark_session_unverified()
             self._circuit_breaker.record_failure()
             message = f"ClientConnectorError[{cceerr}]"
             # Log ERROR only on first occurrence, DEBUG for subsequent failures
@@ -2015,7 +2015,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             )
             raise ClientException(i18n.tr(key="exception.client.json_post.connector_error", reason=message)) from cceerr
         except (ClientError, OSError) as err:
-            self.clear_session()
+            self._mark_session_unverified()
             self._circuit_breaker.record_failure()
             # Log ERROR only on first occurrence, DEBUG for subsequent failures
             level = logging.ERROR if self._connection_state.add_issue(issuer=self, iid=self._url) else logging.DEBUG
@@ -2264,6 +2264,18 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             if self._session_id:
                 self._session_id = await self._do_renew_login(session_id=self._session_id)
             return self._session_id is not None
+
+    def _mark_session_unverified(self) -> None:
+        """
+        Force the next request to renew the session before using it.
+
+        A transport error says nothing about the session on the backend, so the
+        session id is kept: dropping it would leave the session open on the CCU,
+        because logout() only logs out a known id, and repeated failures then end
+        in "too many sessions". A session that is no longer valid is handled by
+        the renew path: _do_renew_login logs out and logs in again on AuthFailure.
+        """
+        self._last_session_id_refresh = None
 
     async def _post(
         self,

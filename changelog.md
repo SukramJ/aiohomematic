@@ -1,3 +1,21 @@
+# Version 2026.11.7 (2026-11-22)
+
+## What's Changed
+
+### Fixed
+
+- **A JSON-RPC transport error no longer leaves the CCU session open.** A connection error
+  (for example `ServerDisconnectedError`) dropped the session id without logging the session
+  out, so `logout()` had nothing to close and the session stayed open on the CCU. After a few
+  failed starts the CCU refused the login with "invalid credentials or too many sessions". The
+  session id is now kept, the next request renews it first, and `logout()` closes it
+  ([homematicip_local#1389](https://github.com/SukramJ/homematicip_local/issues/1389)).
+
+- **Loading the device and paramset caches no longer blocks the event loop.** Hashing and
+  normalizing the cached descriptions ran on the event loop at startup, so no other task ran
+  until the whole cache was processed. This work now runs in a worker thread
+  ([homematicip_local#1389](https://github.com/SukramJ/homematicip_local/issues/1389)).
+
 # Version 2026.11.6 (2026-11-18)
 
 ## What's Changed

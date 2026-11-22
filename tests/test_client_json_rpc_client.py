@@ -6,9 +6,9 @@ import asyncio
 from collections.abc import Mapping
 from datetime import datetime
 import logging
-from typing import Any, Self
+from typing import Any, Final, Self
 
-from aiohttp import ClientConnectorCertificateError, ClientSession, ContentTypeError
+from aiohttp import ClientConnectorCertificateError, ClientSession, ContentTypeError, ServerDisconnectedError
 from aiohttp.client_exceptions import ClientConnectorError, ClientError
 import pytest
 
@@ -677,6 +677,109 @@ class TestJsonRpcClientErrorHandling:
         assert await client._get_auth_enabled() is True
 
         await client.stop()
+
+
+class _ConnKey:
+    """Minimal connection key for constructing aiohttp connector errors."""
+
+    host = "h"
+    port = 80
+    ssl = False
+    is_ssl = False
+
+
+_TRANSPORT_ERRORS: Final = (
+    pytest.param(lambda: ServerDisconnectedError(), id="server_disconnected"),
+    pytest.param(lambda: ClientConnectorError(_ConnKey(), OSError("boom")), id="connector"),  # type: ignore[arg-type]
+    pytest.param(
+        lambda: ClientConnectorCertificateError(_ConnKey(), OSError("cert")),  # type: ignore[arg-type]
+        id="connector_certificate",
+    ),
+)
+
+
+class TestJsonRpcSessionAfterTransportError:
+    """A transport error must not orphan the backend session (issue homematicip_local#1389)."""
+
+    @staticmethod
+    def _client(*, aiohttp_session: ClientSession) -> AioJsonRpcAioHttpClient:
+        client = AioJsonRpcAioHttpClient(
+            username="u",
+            password="p",
+            device_url="http://example",
+            connection_state=hmcu.CentralConnectionState(),
+            client_session=aiohttp_session,
+            tls=False,
+        )
+        client._session_id = "sid-1"  # type: ignore[attr-defined]
+        client._last_session_id_refresh = datetime.now()  # type: ignore[attr-defined]
+        client._supported_methods = (  # type: ignore[attr-defined]
+            _JsonRpcMethod.CCU_GET_AUTH_ENABLED,
+            _JsonRpcMethod.SESSION_LOGIN,
+            _JsonRpcMethod.SESSION_LOGOUT,
+            _JsonRpcMethod.SESSION_RENEW,
+        )
+        return client
+
+    @staticmethod
+    async def _fail_once(
+        *, client: AioJsonRpcAioHttpClient, monkeypatch: pytest.MonkeyPatch, error: BaseException
+    ) -> None:
+        async def raise_post(**kwargs: Any) -> None:
+            raise error
+
+        monkeypatch.setattr(client._client_session, "post", raise_post)
+        with pytest.raises((ClientException, NoConnectionException)):
+            await client._do_post(session_id="sid-1", method=_JsonRpcMethod.CCU_GET_AUTH_ENABLED)
+        client.circuit_breaker.reset()
+
+    @staticmethod
+    def _record_posts(
+        *, client: AioJsonRpcAioHttpClient, monkeypatch: pytest.MonkeyPatch
+    ) -> list[tuple[str, str | None]]:
+        """Answer every request with success and record (method, session id)."""
+        sent: list[tuple[str, str | None]] = []
+
+        async def fake_post(**kwargs: Any) -> _FakeResponse:
+            body = compat.loads(data=kwargs["data"])
+            sent.append((body["method"], body["params"].get("_session_id_")))
+            return _FakeResponse(status=200, json_value={"result": True, "error": None})
+
+        monkeypatch.setattr(client._client_session, "post", fake_post)
+        return sent
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("make_error", _TRANSPORT_ERRORS)
+    async def test_logout_after_transport_error_reaches_the_session(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch, make_error: Any
+    ) -> None:
+        """logout() after a transport error logs out the session that was open before it."""
+        client = self._client(aiohttp_session=aiohttp_session)
+        await self._fail_once(client=client, monkeypatch=monkeypatch, error=make_error())
+
+        assert client.is_activated is True
+        sent = self._record_posts(client=client, monkeypatch=monkeypatch)
+        await client.logout()
+
+        assert sent == [(_JsonRpcMethod.SESSION_LOGOUT, "sid-1")]
+        assert client.is_activated is False
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("make_error", _TRANSPORT_ERRORS)
+    async def test_next_request_after_transport_error_renews_first(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch, make_error: Any
+    ) -> None:
+        """The request after a transport error renews the kept session instead of trusting it."""
+        client = self._client(aiohttp_session=aiohttp_session)
+        await self._fail_once(client=client, monkeypatch=monkeypatch, error=make_error())
+
+        sent = self._record_posts(client=client, monkeypatch=monkeypatch)
+        await client._post(method=_JsonRpcMethod.CCU_GET_AUTH_ENABLED)  # type: ignore[attr-defined]
+
+        assert sent == [
+            (_JsonRpcMethod.SESSION_RENEW, "sid-1"),
+            (_JsonRpcMethod.CCU_GET_AUTH_ENABLED, "sid-1"),
+        ]
 
 
 class TestJsonRpcClientRecording:

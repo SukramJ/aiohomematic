@@ -9,7 +9,7 @@ import logging
 from typing import Any, Final, Self
 
 from aiohttp import ClientConnectorCertificateError, ClientSession, ContentTypeError, ServerDisconnectedError
-from aiohttp.client_exceptions import ClientConnectorError, ClientError
+from aiohttp.client_exceptions import ClientConnectorError, ClientError, ClientOSError
 import pytest
 
 from aiohomematic import central as hmcu, compat, i18n
@@ -698,6 +698,12 @@ _TRANSPORT_ERRORS: Final = (
 )
 
 
+_DISCONNECT_ERRORS: Final = [
+    pytest.param(ServerDisconnectedError, id="server_disconnected"),
+    pytest.param(lambda: ClientOSError(104, "Connection reset by peer"), id="connection_reset"),
+]
+
+
 class TestJsonRpcSessionAfterTransportError:
     """A transport error must not orphan the backend session (issue homematicip_local#1389)."""
 
@@ -780,6 +786,138 @@ class TestJsonRpcSessionAfterTransportError:
             (_JsonRpcMethod.SESSION_RENEW, "sid-1"),
             (_JsonRpcMethod.CCU_GET_AUTH_ENABLED, "sid-1"),
         ]
+
+
+class TestJsonRpcRetryOnDisconnect:
+    """A read request is sent once more when the server drops the connection; a write never is."""
+
+    @staticmethod
+    def _client(*, aiohttp_session: ClientSession) -> AioJsonRpcAioHttpClient:
+        client = AioJsonRpcAioHttpClient(
+            username="u",
+            password="p",
+            device_url="http://example",
+            connection_state=hmcu.CentralConnectionState(),
+            client_session=aiohttp_session,
+            tls=False,
+        )
+        client._session_id = "sid-1"  # type: ignore[attr-defined]
+        client._last_session_id_refresh = datetime.now()  # type: ignore[attr-defined]
+        client._supported_methods = (  # type: ignore[attr-defined]
+            _JsonRpcMethod.DEVICE_LIST_ALL_DETAIL,
+            _JsonRpcMethod.INTERFACE_SET_VALUE,
+            _JsonRpcMethod.REGA_RUN_SCRIPT,
+            _JsonRpcMethod.SESSION_LOGIN,
+        )
+        return client
+
+    @staticmethod
+    def _script_posts(
+        *, client: AioJsonRpcAioHttpClient, monkeypatch: pytest.MonkeyPatch, outcomes: list[BaseException | Any]
+    ) -> list[str]:
+        """Answer each request with the next outcome (raise it if it is an exception) and record the method."""
+        sent: list[str] = []
+        pending = list(outcomes)
+
+        async def fake_post(**kwargs: Any) -> _FakeResponse:
+            sent.append(compat.loads(data=kwargs["data"])["method"])
+            outcome = pending.pop(0)
+            if isinstance(outcome, BaseException):
+                raise outcome
+            return _FakeResponse(status=200, json_value={"result": outcome, "error": None})
+
+        monkeypatch.setattr(client._client_session, "post", fake_post)
+        return sent
+
+    @pytest.mark.asyncio
+    async def test_connector_error_is_not_sent_again(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A failed connect is no dropped keep-alive connection, so it is not retried (ClientOSError subclass)."""
+        client = self._client(aiohttp_session=aiohttp_session)
+        sent = self._script_posts(
+            client=client, monkeypatch=monkeypatch, outcomes=[ClientConnectorError(_ConnKey(), OSError("boom"))]
+        )
+
+        with pytest.raises(ClientException):
+            await client._do_post(session_id="sid-1", method=_JsonRpcMethod.DEVICE_LIST_ALL_DETAIL)
+
+        assert sent == [_JsonRpcMethod.DEVICE_LIST_ALL_DETAIL]
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("make_error", _DISCONNECT_ERRORS)
+    async def test_read_method_gives_up_after_one_retry(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch, make_error: Any
+    ) -> None:
+        """A second drop in a row is reported as before."""
+        client = self._client(aiohttp_session=aiohttp_session)
+        sent = self._script_posts(client=client, monkeypatch=monkeypatch, outcomes=[make_error(), make_error()])
+
+        with pytest.raises(NoConnectionException):
+            await client._do_post(session_id="sid-1", method=_JsonRpcMethod.DEVICE_LIST_ALL_DETAIL)
+
+        assert sent == [_JsonRpcMethod.DEVICE_LIST_ALL_DETAIL] * 2
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("make_error", _DISCONNECT_ERRORS)
+    async def test_read_method_is_sent_once_more(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch, make_error: Any
+    ) -> None:
+        """Device.listAllDetail survives one dropped connection (homematicip_local#1389)."""
+        client = self._client(aiohttp_session=aiohttp_session)
+        sent = self._script_posts(client=client, monkeypatch=monkeypatch, outcomes=[make_error(), ["device"]])
+
+        response = await client._do_post(session_id="sid-1", method=_JsonRpcMethod.DEVICE_LIST_ALL_DETAIL)
+
+        assert response["result"] == ["device"]
+        assert sent == [_JsonRpcMethod.DEVICE_LIST_ALL_DETAIL] * 2
+        assert client.circuit_breaker.is_available is True
+
+    @pytest.mark.asyncio
+    async def test_read_script_is_sent_once_more(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A read-only ReGa script survives one dropped connection."""
+        client = self._client(aiohttp_session=aiohttp_session)
+        sent = self._script_posts(
+            client=client, monkeypatch=monkeypatch, outcomes=[ServerDisconnectedError(), '{"serial": "x"}']
+        )
+
+        response = await client._post_script(script_name=RegaScript.GET_SERIAL)  # type: ignore[attr-defined]
+
+        assert response["result"] == {"serial": "x"}
+        assert sent == [_JsonRpcMethod.REGA_RUN_SCRIPT] * 2
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "method", [_JsonRpcMethod.INTERFACE_SET_VALUE, _JsonRpcMethod.SESSION_LOGIN], ids=["set_value", "login"]
+    )
+    async def test_write_method_is_not_sent_again(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch, method: _JsonRpcMethod
+    ) -> None:
+        """A request that changes state may have reached the backend, so it is never sent twice."""
+        client = self._client(aiohttp_session=aiohttp_session)
+        sent = self._script_posts(client=client, monkeypatch=monkeypatch, outcomes=[ServerDisconnectedError()])
+
+        with pytest.raises(NoConnectionException):
+            await client._do_post(session_id="sid-1", method=method)
+
+        assert sent == [method]
+
+    @pytest.mark.asyncio
+    async def test_write_script_is_not_sent_again(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A ReGa script that changes state is never sent twice."""
+        client = self._client(aiohttp_session=aiohttp_session)
+        sent = self._script_posts(client=client, monkeypatch=monkeypatch, outcomes=[ServerDisconnectedError()])
+
+        with pytest.raises(NoConnectionException):
+            await client._post_script(  # type: ignore[attr-defined]
+                script_name=RegaScript.SET_SYSTEM_VARIABLE, extra_params={_JsonKey.NAME: "n", _JsonKey.VALUE: 1}
+            )
+
+        assert sent == [_JsonRpcMethod.REGA_RUN_SCRIPT]
 
 
 class TestJsonRpcClientRecording:

@@ -16,6 +16,13 @@
   until the whole cache was processed. This work now runs in a worker thread
   ([homematicip_local#1389](https://github.com/SukramJ/homematicip_local/issues/1389)).
 
+- **A read request survives a dropped keep-alive connection.** When the backend closed a pooled
+  connection, the next JSON-RPC request on it failed with `ServerDisconnectedError`; aiohttp
+  sends such a request again only for idempotent HTTP methods, never for POST. Read-only methods
+  (for example `Device.listAllDetail`) and read-only ReGa scripts are now sent once more.
+  Requests that change state, and `Session.*`, are never repeated
+  ([homematicip_local#1389](https://github.com/SukramJ/homematicip_local/issues/1389)).
+
 # Version 2026.11.6 (2026-11-18)
 
 ## What's Changed

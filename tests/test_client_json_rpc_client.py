@@ -705,7 +705,7 @@ _DISCONNECT_ERRORS: Final = [
 
 
 class TestJsonRpcSessionAfterTransportError:
-    """A transport error must not orphan the backend session (issue homematicip_local#1389)."""
+    """A transport error must not orphan the backend session."""
 
     @staticmethod
     def _client(*, aiohttp_session: ClientSession) -> AioJsonRpcAioHttpClient:
@@ -863,7 +863,7 @@ class TestJsonRpcRetryOnDisconnect:
     async def test_read_method_is_sent_once_more(
         self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch, make_error: Any
     ) -> None:
-        """Device.listAllDetail survives one dropped connection (homematicip_local#1389)."""
+        """Device.listAllDetail survives one dropped connection."""
         client = self._client(aiohttp_session=aiohttp_session)
         sent = self._script_posts(client=client, monkeypatch=monkeypatch, outcomes=[make_error(), ["device"]])
 

@@ -400,7 +400,7 @@ class TestDeviceDescriptionRegistry:
     async def test_load_keeps_event_loop_running_while_normalizing(
         self, tmp_path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """load() normalizes off the event loop (homematicip_local#1389)."""
+        """load() normalizes off the event loop."""
         central = _CentralStub("C", str(tmp_path))
         ddr = DeviceDescriptionRegistry(storage=central.create_device_storage(), config_provider=central)
         for no in range(3):
@@ -855,7 +855,7 @@ class TestParamsetDescriptionRegistry:
     async def test_load_keeps_event_loop_running_while_normalizing(
         self, tmp_path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """load() normalizes off the event loop (homematicip_local#1389)."""
+        """load() normalizes off the event loop."""
         central = _CentralStub("C", str(tmp_path))
         pdr = ParamsetDescriptionRegistry(storage=central.create_paramset_storage(), config_provider=central)
         for no in range(3):

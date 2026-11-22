@@ -180,7 +180,7 @@ class BasePersistentCache(ABC):
         data.pop("_schema_version", None)
 
         # Hashing and normalizing a large cache is pure CPU work. Run it off the
-        # event loop so the loop keeps serving I/O meanwhile (homematicip_local#1389).
+        # event loop so the loop keeps serving I/O meanwhile.
         if (loaded_hash := await asyncio.to_thread(hash_sha256, value=data)) == self._last_hash_saved:
             return DataOperationResult.NO_LOAD
         prepared = await asyncio.to_thread(self._prepare_loaded_content, data=data)

@@ -31,7 +31,7 @@ Notes
 
 import asyncio
 from asyncio import Semaphore
-from collections.abc import Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from datetime import datetime
 from enum import StrEnum, unique
 from functools import partial
@@ -46,10 +46,12 @@ from aiohttp import (
     ClientConnectorCertificateError,
     ClientConnectorError,
     ClientError,
+    ClientOSError,
     ClientResponse,
     ClientSession,
     ClientTimeout,
     ContentTypeError,
+    ServerDisconnectedError,
     TCPConnector,
 )
 
@@ -401,6 +403,54 @@ _CIRCUIT_BREAKER_BYPASS_METHODS: Final = (
     _JsonRpcMethod.SESSION_LOGIN,
     _JsonRpcMethod.SESSION_LOGOUT,
     _JsonRpcMethod.SESSION_RENEW,
+)
+
+# Read-only methods that are sent once more when the server drops the connection mid-request.
+# aiohttp retries a dropped keep-alive connection itself only for idempotent HTTP methods
+# (GET, HEAD, OPTIONS, TRACE, PUT, DELETE), never for POST, which JSON-RPC uses throughout.
+# Session.* is left out on purpose: a repeated login may open a second session on the backend.
+_RETRY_ON_DISCONNECT_METHODS: Final = frozenset(
+    {
+        _JsonRpcMethod.CCU_GET_AUTH_ENABLED,
+        _JsonRpcMethod.CCU_GET_HTTPS_REDIRECT_ENABLED,
+        _JsonRpcMethod.CHANNEL_HAS_PROGRAM_IDS,
+        _JsonRpcMethod.DEVICE_LIST_ALL_DETAIL,
+        _JsonRpcMethod.INTERFACE_GET_DEVICE_DESCRIPTION,
+        _JsonRpcMethod.INTERFACE_GET_INSTALL_MODE,
+        _JsonRpcMethod.INTERFACE_GET_LINK_INFO,
+        _JsonRpcMethod.INTERFACE_GET_MASTER_VALUE,
+        _JsonRpcMethod.INTERFACE_GET_PARAMSET,
+        _JsonRpcMethod.INTERFACE_GET_PARAMSET_DESCRIPTION,
+        _JsonRpcMethod.INTERFACE_GET_SUPPRESSED_SERVICE_MESSAGES,
+        _JsonRpcMethod.INTERFACE_GET_VALUE,
+        _JsonRpcMethod.INTERFACE_IS_PRESENT,
+        _JsonRpcMethod.INTERFACE_LIST_DEVICES,
+        _JsonRpcMethod.INTERFACE_LIST_INTERFACES,
+        _JsonRpcMethod.PROGRAM_GET_ALL,
+        _JsonRpcMethod.ROOM_GET_ALL,
+        _JsonRpcMethod.SUBSECTION_GET_ALL,
+        _JsonRpcMethod.SYSTEM_LIST_METHODS,
+        _JsonRpcMethod.SYSVAR_GET_ALL,
+        _JsonRpcMethod.SYSVAR_GET_VALUE_BY_NAME,
+    }
+)
+
+# ReGa scripts that only read, retried like the methods above. A script belongs here only when
+# nothing in it changes state: no State()/Active()/AlReceipt(), and system.Exec() only for
+# reading commands (cat, grep, test, ps, hostname, printenv). get_system_update_info is left
+# out because it runs checkFirmwareUpdate.sh.
+_RETRY_ON_DISCONNECT_SCRIPTS: Final = frozenset(
+    {
+        RegaScript.CREATE_BACKUP_STATUS,
+        RegaScript.FETCH_ALL_DEVICE_DATA,
+        RegaScript.GET_ALARM_MESSAGES,
+        RegaScript.GET_BACKEND_INFO,
+        RegaScript.GET_INBOX_DEVICES,
+        RegaScript.GET_PROGRAM_DESCRIPTIONS,
+        RegaScript.GET_SERIAL,
+        RegaScript.GET_SERVICE_MESSAGES,
+        RegaScript.GET_SYSTEM_VARIABLE_DESCRIPTIONS,
+    }
 )
 
 
@@ -1865,6 +1915,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         method: _JsonRpcMethod,
         extra_params: Mapping[Any, Any] | None = None,
         use_default_params: bool = True,
+        read_only_script: bool = False,
     ) -> dict[str, Any] | Any:
         """Reusable JSON-RPC POST function."""
         if not self._client_session:
@@ -1899,7 +1950,12 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             )
             # Limit all JSON-RPC requests to prevent CCU session overload
             async with self._http_session_semaphore:
-                if (response := await asyncio.shield(post_call())) is None:
+                response = await self._send_post(
+                    post_call=post_call,
+                    method=method,
+                    retry_on_disconnect=read_only_script or method in _RETRY_ON_DISCONNECT_METHODS,
+                )
+                if response is None:
                     raise ClientException(i18n.tr(key="exception.client.json_post.no_response"))
 
             if response.status == 200:
@@ -1968,7 +2024,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             raise
 
         except ClientConnectorCertificateError as cccerr:
-            self.clear_session()
+            self._mark_session_unverified()
             self._circuit_breaker.record_failure()
             message = f"ClientConnectorCertificateError[{cccerr}]"
             if self._tls is False and cccerr.ssl is True:
@@ -1995,7 +2051,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 i18n.tr(key="exception.client.json_post.connector_certificate_error", reason=message)
             ) from cccerr
         except ClientConnectorError as cceerr:
-            self.clear_session()
+            self._mark_session_unverified()
             self._circuit_breaker.record_failure()
             message = f"ClientConnectorError[{cceerr}]"
             # Log ERROR only on first occurrence, DEBUG for subsequent failures
@@ -2015,7 +2071,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             )
             raise ClientException(i18n.tr(key="exception.client.json_post.connector_error", reason=message)) from cceerr
         except (ClientError, OSError) as err:
-            self.clear_session()
+            self._mark_session_unverified()
             self._circuit_breaker.record_failure()
             # Log ERROR only on first occurrence, DEBUG for subsequent failures
             level = logging.ERROR if self._connection_state.add_issue(issuer=self, iid=self._url) else logging.DEBUG
@@ -2265,6 +2321,18 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 self._session_id = await self._do_renew_login(session_id=self._session_id)
             return self._session_id is not None
 
+    def _mark_session_unverified(self) -> None:
+        """
+        Force the next request to renew the session before using it.
+
+        A transport error says nothing about the session on the backend, so the
+        session id is kept: dropping it would leave the session open on the CCU,
+        because logout() only logs out a known id, and repeated failures then end
+        in "too many sessions". A session that is no longer valid is handled by
+        the renew path: _do_renew_login logs out and logs in again on AuthFailure.
+        """
+        self._last_session_id_refresh = None
+
     async def _post(
         self,
         *,
@@ -2337,6 +2405,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             session_id=session_id,
             method=method,
             extra_params={_JsonKey.SCRIPT: script},
+            read_only_script=script_name in _RETRY_ON_DISCONNECT_SCRIPTS,
         )
 
         _LOGGER.debug("POST_SCRIPT: method: %s [%s]", method, script_name)
@@ -2443,6 +2512,30 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             )
             return True
         return False
+
+    async def _send_post(
+        self,
+        *,
+        post_call: Callable[[], Awaitable[ClientResponse | None]],
+        method: _JsonRpcMethod,
+        retry_on_disconnect: bool,
+    ) -> ClientResponse | None:
+        """
+        Send the request, once more if a read-only request lost its connection.
+
+        The second attempt covers a keep-alive connection the server closed while it sat in
+        the pool. A failed connect is not retried: ClientConnectorError subclasses
+        ClientOSError, but there the request never left this host.
+        """
+        try:
+            return await asyncio.shield(post_call())
+        except ClientConnectorError:
+            raise
+        except (ServerDisconnectedError, ClientOSError) as err:
+            if not retry_on_disconnect:
+                raise
+            _LOGGER.debug("POST: %s lost the connection (%s), sending it once more", method, err)
+        return await asyncio.shield(post_call())
 
 
 def _determine_ccu_type(*, product: str) -> CCUType:

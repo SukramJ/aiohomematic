@@ -3,8 +3,11 @@
 """Tests for store/persistent.py of aiohomematic."""
 
 import asyncio
+import contextlib
 from datetime import UTC, datetime
 import json
+import time
+from typing import Any
 import zipfile
 
 import pytest
@@ -26,9 +29,51 @@ from aiohomematic.store.persistent import (
     ParamsetDescriptionRegistry,
     SessionRecorder,
     cleanup_files,
+    device as device_module,
     get_file_name,
     get_file_path,
+    paramset as paramset_module,
 )
+
+
+class _LoopTurnProbe:
+    """
+    Record how far the event loop advanced each time a normalizer runs.
+
+    A ticker task counts loop turns while load() runs; the wrapped normalizer
+    records the count on every call and takes 20 ms. A growing count between
+    calls proves the loop kept running while the cache was normalized.
+    """
+
+    def __init__(self) -> None:
+        self.turns = 0
+        self.seen: list[int] = []
+
+    async def run(self, *, coro: Any) -> None:
+        """Await coro while counting event loop turns."""
+
+        async def ticker() -> None:
+            while True:
+                self.turns += 1
+                await asyncio.sleep(0)
+
+        task = asyncio.create_task(ticker())
+        try:
+            await coro
+        finally:
+            task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
+
+    def wrap(self, *, real: Any) -> Any:
+        """Return real wrapped so that each call records the loop turn count."""
+
+        def wrapper(**kwargs: Any) -> Any:
+            self.seen.append(self.turns)
+            time.sleep(0.02)
+            return real(**kwargs)
+
+        return wrapper
 
 
 class _Cfg:
@@ -350,6 +395,30 @@ class TestDeviceDescriptionRegistry:
 
         dev_map = ddr.get_device_with_channels(interface_id=iface, device_address=dev_addr)
         assert set(dev_map.keys()) == {dev_addr, ch_addr}
+
+    @pytest.mark.asyncio
+    async def test_load_keeps_event_loop_running_while_normalizing(
+        self, tmp_path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """load() normalizes off the event loop."""
+        central = _CentralStub("C", str(tmp_path))
+        ddr = DeviceDescriptionRegistry(storage=central.create_device_storage(), config_provider=central)
+        for no in range(3):
+            ddr.add_device(interface_id="if1", device_description={"ADDRESS": f"DEV{no}", "CHILDREN": [], "TYPE": "T"})
+        await ddr.save()
+
+        probe = _LoopTurnProbe()
+        monkeypatch.setattr(
+            device_module,
+            "normalize_device_description",
+            probe.wrap(real=device_module.normalize_device_description),
+        )
+        ddr2 = DeviceDescriptionRegistry(storage=central.create_device_storage(), config_provider=central)
+        await probe.run(coro=ddr2.load())
+
+        assert len(probe.seen) == 3
+        assert probe.seen[-1] > probe.seen[0], "event loop did not run while device descriptions were normalized"
+        assert ddr2.get_model(device_address="DEV2") == "T"
 
     @pytest.mark.asyncio
     async def test_load_missing_file(self, tmp_path) -> None:
@@ -781,6 +850,38 @@ class TestParamsetDescriptionRegistry:
         )
 
         assert pdr.is_in_multiple_channels(channel_address=ch, parameter="UNIQUE_PARAM") is False
+
+    @pytest.mark.asyncio
+    async def test_load_keeps_event_loop_running_while_normalizing(
+        self, tmp_path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """load() normalizes off the event loop."""
+        central = _CentralStub("C", str(tmp_path))
+        pdr = ParamsetDescriptionRegistry(storage=central.create_paramset_storage(), config_provider=central)
+        for no in range(3):
+            pdr.add(
+                interface_id="if1",
+                channel_address=f"DEV:{no}",
+                paramset_key=ParamsetKey.VALUES,
+                paramset_description={"STATE": {"TYPE": "BOOL"}},
+                device_type="TEST",
+            )
+        await pdr.save()
+
+        probe = _LoopTurnProbe()
+        monkeypatch.setattr(
+            paramset_module,
+            "normalize_paramset_description",
+            probe.wrap(real=paramset_module.normalize_paramset_description),
+        )
+        pdr2 = ParamsetDescriptionRegistry(storage=central.create_paramset_storage(), config_provider=central)
+        await probe.run(coro=pdr2.load())
+
+        assert len(probe.seen) == 3
+        assert probe.seen[-1] > probe.seen[0], "event loop did not run while paramset descriptions were normalized"
+        assert pdr2.has_parameter(
+            interface_id="if1", channel_address="DEV:2", paramset_key=ParamsetKey.VALUES, parameter="STATE"
+        )
 
     @pytest.mark.asyncio
     async def test_load_with_caches_disabled(self, tmp_path) -> None:

@@ -249,8 +249,22 @@ class ParamsetDescriptionRegistry(
             for channel_address, paramsets in channel_paramsets.items():
                 self._add_address_parameter(channel_address=channel_address, paramsets=list(paramsets.values()))
 
+    def _prepare_loaded_content(self, *, data: dict[str, Any]) -> dict[str, Any]:
+        """Return the loaded paramset descriptions normalized, without metadata keys."""
+        return {
+            interface_id: {
+                channel_address: {
+                    paramset_key_str: normalize_paramset_description(paramset=paramset_desc)
+                    for paramset_key_str, paramset_desc in paramsets.items()
+                }
+                for channel_address, paramsets in channels.items()
+            }
+            for interface_id, channels in data.items()
+            if not interface_id.startswith("_")
+        }
+
     def _process_loaded_content(self, *, data: dict[str, Any]) -> None:
-        """Rebuild indexes from loaded data."""
+        """Rebuild indexes from prepared data."""
         # Convert loaded regular dicts back to nested defaultdicts.
         # After JSON deserialization, _content is updated with regular dicts,
         # which breaks the defaultdict behavior for new keys.
@@ -258,14 +272,9 @@ class ParamsetDescriptionRegistry(
         self._content.clear()
         self._content.update(self._create_empty_content())
         for interface_id, channels in data.items():
-            if interface_id.startswith("_"):  # Skip metadata keys
-                continue
             for channel_address, paramsets in channels.items():
                 for paramset_key_str, paramset_desc in paramsets.items():
-                    paramset_key = ParamsetKey(paramset_key_str)
-                    # Normalize each paramset description when loading
-                    normalized = normalize_paramset_description(paramset=paramset_desc)
-                    self._content[interface_id][channel_address][paramset_key] = normalized
+                    self._content[interface_id][channel_address][ParamsetKey(paramset_key_str)] = paramset_desc
 
         self._address_parameter_cache.clear()
         self._init_address_parameter_list()

@@ -201,16 +201,20 @@ class DeviceDescriptionRegistry(
             addresses_to_remove=[device.address, *device.channels.keys()],
         )
 
-    def _convert_device_descriptions(self, *, interface_id: str, device_descriptions: list[DeviceDescription]) -> None:
-        """Convert provided list of device descriptions (normalized)."""
-        for device_description in device_descriptions:
-            # Normalize each description when loading
-            normalized = normalize_device_description(device_description=device_description)
-            self._process_device_description(interface_id=interface_id, device_description=normalized)
-
     def _create_empty_content(self) -> dict[str, Any]:
         """Create empty content structure."""
         return defaultdict(list)
+
+    def _prepare_loaded_content(self, *, data: dict[str, Any]) -> dict[str, Any]:
+        """Return the loaded device descriptions normalized, without metadata keys."""
+        return {
+            interface_id: [
+                normalize_device_description(device_description=device_description)
+                for device_description in device_descriptions
+            ]
+            for interface_id, device_descriptions in data.items()
+            if not interface_id.startswith("_")
+        }
 
     def _process_device_description(self, *, interface_id: str, device_description: DeviceDescription) -> None:
         """Convert provided dict of device descriptions."""
@@ -224,16 +228,12 @@ class DeviceDescriptionRegistry(
         addr_set.add(address)
 
     def _process_loaded_content(self, *, data: dict[str, Any]) -> None:
-        """Rebuild indexes from loaded data."""
+        """Rebuild indexes from prepared data."""
         self._addresses.clear()
         self._device_descriptions.clear()
         for interface_id, device_descriptions in data.items():
-            if interface_id.startswith("_"):  # Skip metadata keys
-                continue
-            self._convert_device_descriptions(
-                interface_id=interface_id,
-                device_descriptions=device_descriptions,
-            )
+            for device_description in device_descriptions:
+                self._process_device_description(interface_id=interface_id, device_description=device_description)
 
     def _remove_device(self, *, interface_id: str, addresses_to_remove: list[str]) -> None:
         """Remove a device from the cache."""

@@ -415,7 +415,7 @@ Play a sound on HmIP-MP3P sound player devices.
 | `volume`      | No       | Volume (0.0 to 1.0)                                      |
 | `on_time`     | No       | Duration in seconds                                      |
 | `ramp_time`   | No       | Volume fade time in seconds                              |
-| `repetitions` | No       | Repetitions (0=none, 1-18=count, -1=infinite)            |
+| `repetitions` | No       | Repetitions (0=none, 1-14=count, -1=infinite)            |
 
 ### homematicip_local.stop_sound
 

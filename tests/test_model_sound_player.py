@@ -9,7 +9,10 @@ import pytest
 from aiohomematic.const import DataPointUsage
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.model.custom import CustomDpSoundPlayer, CustomDpSoundPlayerLed
-from aiohomematic.model.custom.light import _convert_flash_time_to_on_time_list
+from aiohomematic.model.custom.light import (
+    _convert_flash_time_to_on_time_list,
+    _convert_repetitions as _convert_led_repetitions,
+)
 from aiohomematic.model.custom.siren import _convert_repetitions
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
 
@@ -240,7 +243,7 @@ class TestSoundPlayer:
 
         # Test invalid repetitions (out of range)
         with pytest.raises(ValueError):
-            await sound_player.play_sound(repetitions=19)  # Max is 18
+            await sound_player.play_sound(repetitions=15)  # Max is 14
 
         with pytest.raises(ValueError):
             await sound_player.play_sound(repetitions=-2)  # Only -1 is valid for infinite
@@ -463,10 +466,18 @@ class TestFlashTimeConversion:
 class TestRepetitionsConversion:
     """Tests for repetitions to VALUE_LIST conversion."""
 
+    @pytest.mark.parametrize("convert", [_convert_repetitions, _convert_led_repetitions])
+    def test_repetitions_capped_at_device_value_list(self, convert) -> None:
+        """Sound and LED end at REPETITIONS_014, the last count the device value list offers."""
+        assert convert(repetitions=14) == "REPETITIONS_014"
+        for out_of_range in (15, 18):
+            with pytest.raises(ValueError, match="1-14"):
+                convert(repetitions=out_of_range)
+
     def test_repetitions_invalid_raises_value_error(self) -> None:
         """Test that invalid values raise ValueError."""
         with pytest.raises(ValueError):
-            _convert_repetitions(repetitions=19)  # Max is 18
+            _convert_repetitions(repetitions=15)  # Max is 14
 
         with pytest.raises(ValueError):
             _convert_repetitions(repetitions=-2)  # Only -1 is valid for infinite
@@ -483,11 +494,11 @@ class TestRepetitionsConversion:
         assert _convert_repetitions(repetitions=None) == "NO_REPETITION"
 
     def test_repetitions_valid_range(self) -> None:
-        """Test that 1-18 returns correct REPETITIONS_NNN values."""
+        """Test that 1-14 returns correct REPETITIONS_NNN values."""
         assert _convert_repetitions(repetitions=1) == "REPETITIONS_001"
         assert _convert_repetitions(repetitions=5) == "REPETITIONS_005"
         assert _convert_repetitions(repetitions=10) == "REPETITIONS_010"
-        assert _convert_repetitions(repetitions=18) == "REPETITIONS_018"
+        assert _convert_repetitions(repetitions=14) == "REPETITIONS_014"
 
     def test_repetitions_zero_returns_no_repetition(self) -> None:
         """Test that 0 returns NO_REPETITION."""

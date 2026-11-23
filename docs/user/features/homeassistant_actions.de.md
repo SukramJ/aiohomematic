@@ -421,7 +421,7 @@ Einen Sound auf HmIP-MP3P-Soundplayer-Geräten abspielen.
 | `volume`      | Nein         | Lautstärke (0.0 bis 1.0)                                |
 | `on_time`     | Nein         | Dauer in Sekunden                                       |
 | `ramp_time`   | Nein         | Lautstärke-Einblendzeit in Sekunden                     |
-| `repetitions` | Nein         | Wiederholungen (0=keine, 1-18=Anzahl, -1=endlos)        |
+| `repetitions` | Nein         | Wiederholungen (0=keine, 1-14=Anzahl, -1=endlos)        |
 
 ### homematicip_local.stop_sound
 

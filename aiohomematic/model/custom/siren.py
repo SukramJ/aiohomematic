@@ -32,7 +32,10 @@ _ACTIVITY_STATES_ACTIVE: Final[frozenset[str]] = frozenset({"UP", "DOWN"})
 # Repetitions constants
 _NO_REPETITION: Final = "NO_REPETITION"
 _INFINITE_REPETITIONS: Final = "INFINITE_REPETITIONS"
-_MAX_REPETITIONS: Final = 18
+# The REPETITIONS value list of the sound players (HmIP-MP3P, HmIP-WRCD) ends at
+# REPETITIONS_014 before INFINITE_REPETITIONS; the 256-entry lists belong to the
+# *_PROFILE_REPETITIONS parameters of MASTER and LINK.
+_MAX_REPETITIONS: Final = 14
 
 
 def _convert_repetitions(*, repetitions: int | None) -> str:
@@ -40,13 +43,13 @@ def _convert_repetitions(*, repetitions: int | None) -> str:
     Convert repetitions count to REPETITIONS VALUE_LIST value.
 
     Args:
-        repetitions: Number of repetitions (0=none, 1-18=count, -1=infinite, None=none).
+        repetitions: Number of repetitions (0=none, 1-14=count, -1=infinite, None=none).
 
     Returns:
-        VALUE_LIST string (NO_REPETITION, REPETITIONS_001-018, or INFINITE_REPETITIONS).
+        VALUE_LIST string (NO_REPETITION, REPETITIONS_001-014, or INFINITE_REPETITIONS).
 
     Raises:
-        ValueError: If repetitions is outside valid range (-1 to 18).
+        ValueError: If repetitions is outside valid range (-1 to 14).
 
     """
     if repetitions is None or repetitions == 0:
@@ -85,7 +88,7 @@ class PlaySoundArgs(TypedDict, total=False):
     volume: float  # Volume level 0.0-1.0 (default: 0.5)
     on_time: float  # Duration in seconds (auto unit conversion via CombinedTimerField)
     ramp_time: float  # Ramp time in seconds (auto unit conversion via CombinedTimerField)
-    repetitions: int  # 0=none, 1-18=count, -1=infinite (converted to VALUE_LIST entry)
+    repetitions: int  # 0=none, 1-14=count, -1=infinite (converted to VALUE_LIST entry)
 
 
 class BaseCustomDpSiren(CustomDataPoint, SirenDataPointProtocol):
@@ -338,7 +341,7 @@ class CustomDpSoundPlayer(BaseCustomDpSiren, SoundPlayerDataPointProtocol):
                 volume: Volume level 0.0-1.0 (default: 0.5).
                 on_time: Duration in seconds (auto unit conversion, default: 10).
                 ramp_time: Ramp time in seconds (auto unit conversion, default: 0).
-                repetitions: 0=none, 1-18=count, -1=infinite (converted to VALUE_LIST).
+                repetitions: 0=none, 1-14=count, -1=infinite (converted to VALUE_LIST).
 
         """
         soundfile = kwargs.get("soundfile") or self._dp_soundfile.value or self._dp_soundfile.default

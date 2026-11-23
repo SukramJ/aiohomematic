@@ -141,7 +141,10 @@ _PERMANENTLY_ON: Final = "PERMANENTLY_ON"
 # Repetitions constants
 _NO_REPETITION: Final = "NO_REPETITION"
 _INFINITE_REPETITIONS: Final = "INFINITE_REPETITIONS"
-_MAX_REPETITIONS: Final = 18
+# The REPETITIONS value list of the sound players (HmIP-MP3P, HmIP-WRCD) ends at
+# REPETITIONS_014 before INFINITE_REPETITIONS; the 256-entry lists belong to the
+# *_PROFILE_REPETITIONS parameters of MASTER and LINK.
+_MAX_REPETITIONS: Final = 14
 
 
 def _convert_repetitions(*, repetitions: int | None) -> str:
@@ -149,13 +152,13 @@ def _convert_repetitions(*, repetitions: int | None) -> str:
     Convert repetitions count to REPETITIONS VALUE_LIST value.
 
     Args:
-        repetitions: Number of repetitions (0=none, 1-18=count, -1=infinite, None=none).
+        repetitions: Number of repetitions (0=none, 1-14=count, -1=infinite, None=none).
 
     Returns:
-        VALUE_LIST string (NO_REPETITION, REPETITIONS_001-018, or INFINITE_REPETITIONS).
+        VALUE_LIST string (NO_REPETITION, REPETITIONS_001-014, or INFINITE_REPETITIONS).
 
     Raises:
-        ValueError: If repetitions is outside valid range (-1 to 18).
+        ValueError: If repetitions is outside valid range (-1 to 14).
 
     """
     if repetitions is None or repetitions == 0:
@@ -213,7 +216,7 @@ class LightOffArgs(TypedDict, total=False):
 class SoundPlayerLedOnArgs(LightOnArgs, total=False):
     """Arguments for CustomDpSoundPlayerLed turn_on method (extends LightOnArgs)."""
 
-    repetitions: int  # 0=none, 1-18=count, -1=infinite (converted to VALUE_LIST entry)
+    repetitions: int  # 0=none, 1-14=count, -1=infinite (converted to VALUE_LIST entry)
     flash_time: int  # Flash duration in milliseconds (converted to nearest VALUE_LIST entry)
 
 
@@ -901,7 +904,7 @@ class CustomDpSoundPlayerLed(CustomDpDimmer):
                 hs_color: Hue/saturation tuple for color selection.
                 on_time: Duration in seconds (auto-converted to value+unit via CombinedTimerField).
                 ramp_time: Ramp time in seconds (auto-converted to value+unit via CombinedTimerField).
-                repetitions: 0=none, 1-18=count, -1=infinite (converted to VALUE_LIST).
+                repetitions: 0=none, 1-14=count, -1=infinite (converted to VALUE_LIST).
                 flash_time: Flash duration in ms (converted to nearest ON_TIME_LIST value).
 
         """

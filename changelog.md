@@ -1,3 +1,15 @@
+# Version 2026.11.8 (2026-11-23)
+
+## What's Changed
+
+### Fixed
+
+- **`play_sound` and the sound LED accept at most 14 repetitions.** The conversion allowed up to 18
+  and sent `REPETITIONS_015` to `REPETITIONS_018`, which the `REPETITIONS` value list of HmIP-MP3P and
+  HmIP-WRCD does not contain; the value list ends at `REPETITIONS_014` before `INFINITE_REPETITIONS`,
+  so such a call was refused while sending. Repetitions above 14 now raise `ValueError` before anything
+  is sent.
+
 # Version 2026.11.7 (2026-11-22)
 
 ## What's Changed

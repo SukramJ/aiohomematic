@@ -141,25 +141,103 @@ class TestCustomDpCover:
         # Verify position through public API
         assert cover.current_position == 50
 
+        for level, command in (
+            (_CLOSED_LEVEL, cover.close),
+            (_OPEN_LEVEL, cover.open),
+            (0.4, lambda: cover.set_position(position=40)),
+        ):
+            for channel_address in ("VCU8537918:3", "VCU8537918:4"):
+                await central.event_coordinator.data_point_event(
+                    interface_id=const.INTERFACE_ID, channel_address=channel_address, parameter="LEVEL", value=level
+                )
+            call_count = len(mock_client.method_calls)
+            await command()
+            assert call_count == len(mock_client.method_calls)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_cover_command_dropped_only_when_both_channels_at_target(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """A command is dropped only when the written channel and the group channel show the target (#1393)."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        cover: CustomDpCover = cast(CustomDpCover, get_prepared_custom_data_point(central, "VCU8537918", 4))
+        assert cover._use_group_channel_for_cover_state is True
+
+        # Channel 4 holds 25 %, a second channel keeps the shutter closed: the group channel reports 0 %.
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU8537918:4", parameter="LEVEL", value=0.25
+        )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU8537918:3", parameter="LEVEL", value=_CLOSED_LEVEL
         )
-        call_count = len(mock_client.method_calls)
-        await cover.close()
-        assert call_count == len(mock_client.method_calls)
+        assert cover.current_position == 0
+        assert cover.current_channel_position == 25
+        assert cover.is_closed is True
+
+        await cover.set_position(position=0)
+        assert mock_client.method_calls[-1] == call.set_value(
+            channel_address="VCU8537918:4",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="LEVEL",
+            value=_CLOSED_LEVEL,
+            wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
+            retry=True,
+        )
 
         await central.event_coordinator.data_point_event(
-            interface_id=const.INTERFACE_ID, channel_address="VCU8537918:3", parameter="LEVEL", value=_OPEN_LEVEL
+            interface_id=const.INTERFACE_ID, channel_address="VCU8537918:4", parameter="LEVEL", value=0.25
         )
+        await cover.close()
+        assert mock_client.method_calls[-1] == call.set_value(
+            channel_address="VCU8537918:4",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="LEVEL",
+            value=_CLOSED_LEVEL,
+            wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
+            retry=True,
+        )
+
+        # A move the own channel does not reflect (e.g. a button on the device): the group channel
+        # is off the target, so the command is sent although channel 4 already holds it.
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU8537918:4", parameter="LEVEL", value=_OPEN_LEVEL
+        )
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU8537918:3", parameter="LEVEL", value=0.5
+        )
+        await cover.set_position(position=100)
+        assert mock_client.method_calls[-1] == call.set_value(
+            channel_address="VCU8537918:4",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="LEVEL",
+            value=_OPEN_LEVEL,
+            wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
+            retry=True,
+        )
+
+        # Both channels at the target: nothing to send.
+        for channel_address in ("VCU8537918:3", "VCU8537918:4"):
+            await central.event_coordinator.data_point_event(
+                interface_id=const.INTERFACE_ID, channel_address=channel_address, parameter="LEVEL", value=_OPEN_LEVEL
+            )
         call_count = len(mock_client.method_calls)
         await cover.open()
-        assert call_count == len(mock_client.method_calls)
-
-        await central.event_coordinator.data_point_event(
-            interface_id=const.INTERFACE_ID, channel_address="VCU8537918:3", parameter="LEVEL", value=0.4
-        )
-        call_count = len(mock_client.method_calls)
-        await cover.set_position(position=40)
+        await cover.set_position(position=100)
         assert call_count == len(mock_client.method_calls)
 
     @pytest.mark.asyncio
@@ -1260,6 +1338,111 @@ class TestCustomDpIpBlind:
             purge_addresses=frozenset({"VCU3560967:1"}),
             retry=False,
         )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_ipblind_single_axis_keeps_the_written_channel(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """A single-axis command keeps the other axis at the written channel's value, not the group channel's."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        cover: CustomDpIpBlind = cast(
+            CustomDpIpBlind, get_prepared_custom_data_point(central=central, address="VCU1223813", channel_no=4)
+        )
+        for channel_address, parameter, value in (
+            ("VCU1223813:4", "LEVEL", 0.25),
+            ("VCU1223813:4", "LEVEL_2", 0.2),
+            ("VCU1223813:3", "LEVEL", 0.0),
+            ("VCU1223813:3", "LEVEL_2", 0.5),
+        ):
+            await central.event_coordinator.data_point_event(
+                interface_id=const.INTERFACE_ID, channel_address=channel_address, parameter=parameter, value=value
+            )
+
+        await cover.set_position(tilt_position=80)
+        assert mock_client.method_calls[-1] == call.set_value(
+            channel_address="VCU1223813:4",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="COMBINED_PARAMETER",
+            value="L2=80,L=25",
+            priority=CommandPriority.HIGH,
+            retry=True,
+        )
+
+        # Echo of the written channel; the group channel keeps its tilt of 50 %.
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU1223813:4", parameter="LEVEL_2", value=0.8
+        )
+        await cover.set_position(position=50)
+        assert mock_client.method_calls[-1] == call.set_value(
+            channel_address="VCU1223813:4",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="COMBINED_PARAMETER",
+            value="L2=80,L=50",
+            priority=CommandPriority.HIGH,
+            retry=True,
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_ipblind_tilt_dropped_only_when_both_channels_at_target(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """A tilt command is dropped only when the written channel and the group channel show the target."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        cover: CustomDpIpBlind = cast(
+            CustomDpIpBlind, get_prepared_custom_data_point(central=central, address="VCU1223813", channel_no=4)
+        )
+        for channel_address, parameter, value in (
+            ("VCU1223813:4", "LEVEL", 0.1),
+            ("VCU1223813:4", "LEVEL_2", 0.2),
+            ("VCU1223813:3", "LEVEL", 0.1),
+            ("VCU1223813:3", "LEVEL_2", 0.8),
+        ):
+            await central.event_coordinator.data_point_event(
+                interface_id=const.INTERFACE_ID, channel_address=channel_address, parameter=parameter, value=value
+            )
+        assert cover.current_tilt_position == 80
+        assert cover.current_channel_tilt_position == 20
+
+        await cover.set_position(tilt_position=80)
+        assert mock_client.method_calls[-1] == call.set_value(
+            channel_address="VCU1223813:4",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="COMBINED_PARAMETER",
+            value="L2=80,L=10",
+            priority=CommandPriority.HIGH,
+            retry=True,
+        )
+
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU1223813:4", parameter="LEVEL_2", value=0.8
+        )
+        call_count = len(mock_client.method_calls)
+        await cover.set_position(tilt_position=80)
+        assert call_count == len(mock_client.method_calls)
 
 
 class TestCustomDpGarage:

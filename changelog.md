@@ -13,6 +13,12 @@
   tilt commands of blinds are now dropped only when the own channel and the group channel both show the
   target. The reported position still follows the group channel.
 
+- **A blind command for one axis keeps the other axis at the own channel's value.** A tilt-only command
+  sent the height of the group channel along, and a position-only command its tilt, so with virtual
+  channels the group value overwrote the own channel. The kept axis now comes from the own channel, and
+  from the group channel only while the own value is unknown. Whether a HmIPW-DRBL4 gets `L=101` (keep
+  height) is still decided by the group channel, since the closed end is a physical position.
+
 # Version 2026.11.8 (2026-11-23)
 
 ## What's Changed

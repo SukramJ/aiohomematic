@@ -1351,6 +1351,61 @@ class TestCustomDpIpBlind:
             (TEST_DEVICES, True, None, None),
         ],
     )
+    async def test_ipblind_single_axis_keeps_the_written_channel(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """A single-axis command keeps the other axis at the written channel's value, not the group channel's."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        cover: CustomDpIpBlind = cast(
+            CustomDpIpBlind, get_prepared_custom_data_point(central=central, address="VCU1223813", channel_no=4)
+        )
+        for channel_address, parameter, value in (
+            ("VCU1223813:4", "LEVEL", 0.25),
+            ("VCU1223813:4", "LEVEL_2", 0.2),
+            ("VCU1223813:3", "LEVEL", 0.0),
+            ("VCU1223813:3", "LEVEL_2", 0.5),
+        ):
+            await central.event_coordinator.data_point_event(
+                interface_id=const.INTERFACE_ID, channel_address=channel_address, parameter=parameter, value=value
+            )
+
+        await cover.set_position(tilt_position=80)
+        assert mock_client.method_calls[-1] == call.set_value(
+            channel_address="VCU1223813:4",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="COMBINED_PARAMETER",
+            value="L2=80,L=25",
+            priority=CommandPriority.HIGH,
+            retry=True,
+        )
+
+        # Echo of the written channel; the group channel keeps its tilt of 50 %.
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU1223813:4", parameter="LEVEL_2", value=0.8
+        )
+        await cover.set_position(position=50)
+        assert mock_client.method_calls[-1] == call.set_value(
+            channel_address="VCU1223813:4",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="COMBINED_PARAMETER",
+            value="L2=80,L=50",
+            priority=CommandPriority.HIGH,
+            retry=True,
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
     async def test_ipblind_tilt_dropped_only_when_both_channels_at_target(
         self,
         central_client_factory_with_homegear_client,

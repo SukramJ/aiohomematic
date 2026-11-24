@@ -318,15 +318,35 @@ class CustomDpBlind(CustomDpCover, TiltCoverDataPointProtocol):
     _dp_level_2: Final = DataPointField(field=Field.LEVEL_2, dpt=DpFloat)
 
     @property
+    def _channel_tilt_level(self) -> float:
+        """Return the tilt level of the channel a command writes to."""
+        return self._dp_level_2.value if self._dp_level_2.value is not None else self._closed_level
+
+    @property
     def _group_tilt_level(self) -> float:
-        """Return the group level of the tilt."""
+        """Return the tilt level of the group channel, or of the own channel when the group channel is not used."""
         if (
             self._use_group_channel_for_cover_state
             and self._dp_group_level_2.value is not None
             and self.usage == DataPointUsage.CDP_PRIMARY
         ):
             return float(self._dp_group_level_2.value)
-        return self._dp_level_2.value if self._dp_level_2.value is not None else self._closed_level
+        return self._channel_tilt_level
+
+    @property
+    def _kept_level(self) -> float:
+        """
+        Return the level a tilt-only command keeps.
+
+        The written channel's level, not the group channel's: with virtual channels the group level
+        would overwrite the own channel. The group level only while the own level is unknown.
+        """
+        return float(self._dp_level.value) if self._dp_level.value is not None else self._group_level
+
+    @property
+    def _kept_tilt_level(self) -> float:
+        """Return the tilt level a position-only command keeps, chosen as in _kept_level."""
+        return float(self._dp_level_2.value) if self._dp_level_2.value is not None else self._group_tilt_level
 
     @property
     def _target_level(self) -> float | None:
@@ -567,7 +587,7 @@ class CustomDpBlind(CustomDpCover, TiltCoverDataPointProtocol):
                 _level = self._target_level
             else:  # The blind is at a standstill and no level is explicitly requested => we remain at the current level
                 keep_level = True
-                _level = self._group_level
+                _level = self._kept_level
 
             if tilt_level is not None:
                 _tilt_level = tilt_level
@@ -576,7 +596,7 @@ class CustomDpBlind(CustomDpCover, TiltCoverDataPointProtocol):
                 currently_moving = True
                 _tilt_level = self._target_tilt_level
             else:  # The blind is at a standstill and no tilt is explicitly desired => we remain at the current angle
-                _tilt_level = self._group_tilt_level
+                _tilt_level = self._kept_tilt_level
 
             if currently_moving:
                 # Blind actors are buggy when sending new coordinates while they are moving. So we stop them first.
@@ -627,7 +647,9 @@ class CustomDpIpBlind(CustomDpBlind):
         levels: list[str] = []
         if (tilt_pos := self.level_to_position(tilt_level)) is not None:
             levels.append(f"L2={tilt_pos}")
-        if keep_level and self._supports_keep_level and level != self._closed_level:
+        # The closed end is a physical position, so it is read from the group channel; the level sent
+        # otherwise is the written channel's (_kept_level).
+        if keep_level and self._supports_keep_level and self._group_level != self._closed_level:
             levels.append(f"L={CPV_KEEP_VALUE}")
         elif (level_pos := self.level_to_position(level)) is not None:
             levels.append(f"L={level_pos}")

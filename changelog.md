@@ -1,3 +1,18 @@
+# Version 2026.11.9 (2026-11-24)
+
+## What's Changed
+
+### Fixed
+
+- **A cover command is no longer dropped when only the group channel already shows the target.** With
+  `use_group_channel_for_cover_state` the cover reports the position of the group channel, but a command
+  writes the own channel. The check whether a command changes anything compared the target with the group
+  channel alone, so with several virtual channels a command to the position the group channel showed was
+  dropped while the own channel held another level; the report in homematicip_local#1393 describes the
+  cover then moving to that level once the other channel released. `open`, `close`, `set_position` and the
+  tilt commands of blinds are now dropped only when the own channel and the group channel both show the
+  target. The reported position still follows the group channel.
+
 # Version 2026.11.8 (2026-11-23)
 
 ## What's Changed

@@ -115,15 +115,25 @@ class CustomDpCover(PositionMixin, CustomDataPoint, CoverDataPointProtocol):
     _validity_relevant_fields: ClassVar[frozenset[Field]] = frozenset({Field.LEVEL})
 
     @property
+    def _channel_level(self) -> float:
+        """Return the level of the channel a command writes to."""
+        return self._dp_level.value if self._dp_level.value is not None else self._closed_level
+
+    @property
+    def _channel_position(self) -> int:
+        """Return the position of the channel a command writes to."""
+        return self.current_channel_position
+
+    @property
     def _group_level(self) -> float:
-        """Return the channel level of the cover."""
+        """Return the level of the group channel, or of the own channel when the group channel is not used."""
         if (
             self._use_group_channel_for_cover_state
             and self._dp_group_level.value is not None
             and self.usage == DataPointUsage.CDP_PRIMARY
         ):
             return float(self._dp_group_level.value)
-        return self._dp_level.value if self._dp_level.value is not None else self._closed_level
+        return self._channel_level
 
     @property
     def current_channel_position(self) -> int:
@@ -177,11 +187,19 @@ class CustomDpCover(PositionMixin, CustomDataPoint, CoverDataPointProtocol):
             # to the position the cover came from. DIRECTION is the only signal left at
             # that point, because the echo has already cleared the optimistic value.
             return True
-        if kwargs.get(_StateChangeArg.OPEN) is not None and self._group_level != self._open_level:
+        # A command is dropped only when both the channel it writes and the group channel already
+        # show the target. With virtual channels the group channel reports the combined result,
+        # which can equal the target while the own channel holds another level; dropping the
+        # command then left that level in place (homematicip_local#1393). The group channel stays
+        # in the comparison for a move the own channel does not reflect. Without the group channel
+        # both values are the own channel.
+        if kwargs.get(_StateChangeArg.OPEN) is not None and not self._levels_at(level=self._open_level):
             return True
-        if kwargs.get(_StateChangeArg.CLOSE) is not None and self._group_level != self._closed_level:
+        if kwargs.get(_StateChangeArg.CLOSE) is not None and not self._levels_at(level=self._closed_level):
             return True
-        if (position := kwargs.get(_StateChangeArg.POSITION)) is not None and position != self.current_position:
+        if (position := kwargs.get(_StateChangeArg.POSITION)) is not None and (
+            position != self._channel_position or position != self.current_position
+        ):
             return True
         return super().is_state_change(**kwargs)
 
@@ -219,6 +237,10 @@ class CustomDpCover(PositionMixin, CustomDataPoint, CoverDataPointProtocol):
         """Compute static capabilities. Base cover supports position and stop."""
         return COVER_CAPABILITIES
 
+    def _levels_at(self, *, level: float) -> bool:
+        """Return whether the written channel and the group channel both show the level."""
+        return self._channel_level == level and self._group_level == level
+
     @override
     def _post_init(self) -> None:
         """Post action after initialisation of the data point fields."""
@@ -249,14 +271,19 @@ class CustomDpWindowDrive(CustomDpCover):
     _open_level: float = _OPEN_LEVEL
 
     @property
-    def current_position(self) -> int:
-        """Return current position of cover."""
-        level = self._dp_level.value if self._dp_level.value is not None else self._closed_level
+    def _channel_position(self) -> int:
+        """Return the position of the window drive channel."""
+        level = self._channel_level
         if level == _WD_CLOSED_LEVEL:
             level = _CLOSED_LEVEL
         elif level == _CLOSED_LEVEL:
             level = 0.01
         return self.level_to_position(level) or self._closed_position
+
+    @property
+    def current_position(self) -> int:
+        """Return current position of cover."""
+        return self._channel_position
 
     async def _set_level(
         self,
@@ -380,13 +407,19 @@ class CustomDpBlind(CustomDpCover, TiltCoverDataPointProtocol):
     @override
     def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
         """Check if the state changes due to kwargs."""
-        if (
-            tilt_position := kwargs.get(_StateChangeArg.TILT_POSITION)
-        ) is not None and tilt_position != self.current_tilt_position:
+        # Dropped only when the written channel and the group channel both show the target, as the
+        # height in CustomDpCover.is_state_change.
+        if (tilt_position := kwargs.get(_StateChangeArg.TILT_POSITION)) is not None and not self._tilt_positions_at(
+            position=tilt_position
+        ):
             return True
-        if kwargs.get(_StateChangeArg.TILT_OPEN) is not None and self.current_tilt_position != _CoverPosition.OPEN:
+        if kwargs.get(_StateChangeArg.TILT_OPEN) is not None and not self._tilt_positions_at(
+            position=_CoverPosition.OPEN
+        ):
             return True
-        if kwargs.get(_StateChangeArg.TILT_CLOSE) is not None and self.current_tilt_position != _CoverPosition.CLOSED:
+        if kwargs.get(_StateChangeArg.TILT_CLOSE) is not None and not self._tilt_positions_at(
+            position=_CoverPosition.CLOSED
+        ):
             return True
         return super().is_state_change(**kwargs)
 
@@ -558,6 +591,10 @@ class CustomDpBlind(CustomDpCover, TiltCoverDataPointProtocol):
     async def _stop(self, *, collector: CallParameterCollector | None = None) -> None:
         """Stop the device if in motion. Do only call with _command_processing_lock held."""
         await super().stop(collector=collector)
+
+    def _tilt_positions_at(self, *, position: object) -> bool:
+        """Return whether the written channel and the group channel both show the tilt position."""
+        return self.current_channel_tilt_position == position and self.current_tilt_position == position
 
 
 class CustomDpIpBlind(CustomDpBlind):

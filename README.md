@@ -23,15 +23,15 @@ This project is the modern successor to [pyhomematic](https://github.com/danielp
 
 ## Documentation
 
-**Full documentation:** [sukramj.github.io/aiohomematic](https://sukramj.github.io/aiohomematic/)
+**Full documentation:** [sukramj.dev/aiohomematic](https://sukramj.dev/aiohomematic/)
 
-| Section                                                                               | Description                                        |
-| ------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| [Getting Started](https://sukramj.github.io/aiohomematic/getting_started/)            | Installation and first steps                       |
-| [User Guide](https://sukramj.github.io/aiohomematic/user/homeassistant_integration/)  | Home Assistant integration and device topics       |
-| [Developer Guide](https://sukramj.github.io/aiohomematic/developer/consumer_api/)     | API reference for library consumers                |
-| [Contributor Guide](https://sukramj.github.io/aiohomematic/contributor/contributing/) | Dev environment, coding standards, release process |
-| [Architecture & ADRs](https://sukramj.github.io/aiohomematic/architecture/)           | System design and decision records                 |
+| Section                                                                         | Description                                        |
+| ------------------------------------------------------------------------------- | -------------------------------------------------- |
+| [Getting Started](https://sukramj.dev/aiohomematic/getting_started/)            | Installation and first steps                       |
+| [User Guide](https://sukramj.dev/aiohomematic/user/homeassistant_integration/)  | Home Assistant integration and device topics       |
+| [Developer Guide](https://sukramj.dev/aiohomematic/developer/consumer_api/)     | API reference for library consumers                |
+| [Contributor Guide](https://sukramj.dev/aiohomematic/contributor/contributing/) | Dev environment, coding standards, release process |
+| [Architecture & ADRs](https://sukramj.dev/aiohomematic/architecture/)           | System design and decision records                 |
 
 Additional entry points in this repository: [`CLAUDE.md`](CLAUDE.md) (AI assistant / contributor quick-reference), [`AI_POLICY.md`](AI_POLICY.md) (rules for AI-assisted contributions) and [`changelog.md`](changelog.md).
 
@@ -70,7 +70,7 @@ Additional entry points in this repository: [`CLAUDE.md`](CLAUDE.md) (AI assista
 └────────────────────────────────────────────────────────────┘
 ```
 
-CUxD and CCU-Jack use JSON-RPC and receive events via MQTT forwarded by the Home Assistant integration — see [CUxD and CCU-Jack](https://sukramj.github.io/aiohomematic/user/advanced/cuxd_ccu_jack/) for details.
+CUxD and CCU-Jack use JSON-RPC and receive events via MQTT forwarded by the Home Assistant integration — see [CUxD and CCU-Jack](https://sukramj.dev/aiohomematic/user/advanced/cuxd_ccu_jack/) for details.
 
 ### Why Two Projects?
 
@@ -106,7 +106,7 @@ Use the Home Assistant custom integration **Homematic(IP) Local**:
 2. Restart Home Assistant.
 3. Configure the integration under **Settings** → **Devices & Services** → **Add Integration**.
 
-See the [Integration Guide](https://sukramj.github.io/aiohomematic/user/homeassistant_integration/) for detailed instructions.
+See the [Integration Guide](https://sukramj.dev/aiohomematic/user/homeassistant_integration/) for detailed instructions.
 
 ## For Developers
 
@@ -148,11 +148,11 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
-For a more complete example (multiple interfaces, event subscriptions, `.env` loading) see [`example.py`](example.py). For API usage patterns see the [Consumer API guide](https://sukramj.github.io/aiohomematic/developer/consumer_api/).
+For a more complete example (multiple interfaces, event subscriptions, `.env` loading) see [`example.py`](example.py). For API usage patterns see the [Consumer API guide](https://sukramj.dev/aiohomematic/developer/consumer_api/).
 
 ### Contributing
 
-- **Development environment**: [`docs/contributor/dev-environment.md`](https://sukramj.github.io/aiohomematic/contributor/dev-environment/)
+- **Development environment**: [`docs/contributor/dev-environment.md`](https://sukramj.dev/aiohomematic/contributor/dev-environment/)
 - **Contract tests** (protocol / capability invariants, incl. CUxD / CCU-Jack): [`tests/contract/`](tests/contract/)
 - **Benchmarks**: [`tests/benchmarks/`](tests/benchmarks/)
 - **AI assistant / contributor quick-reference**: [`CLAUDE.md`](CLAUDE.md)
@@ -195,7 +195,7 @@ Running outdated firmware or untested backends (CCU2) is at your own risk.
 
 ## Contributing
 
-Contributions are welcome! See the [Contributing Guide](https://sukramj.github.io/aiohomematic/contributor/contributing/) and the in-repo [`CLAUDE.md`](CLAUDE.md) for coding standards and the refactoring checklist.
+Contributions are welcome! See the [Contributing Guide](https://sukramj.dev/aiohomematic/contributor/contributing/) and the in-repo [`CLAUDE.md`](CLAUDE.md) for coding standards and the refactoring checklist.
 
 ## Development
 

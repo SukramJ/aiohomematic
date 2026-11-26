@@ -81,7 +81,7 @@ one. The supported answers, in order:
 
 1. The diagnostics download **already redacts** credentials and the CCU serial number. What
    remains is listed under
-   [Privacy and Security](https://sukramj.github.io/aiohomematic/contributor/testing/debug_data_importance/#privacy-and-security).
+   [Privacy and Security](https://sukramj.dev/aiohomematic/contributor/testing/debug_data_importance/#privacy-and-security).
    Read that section before drawing any conclusion about what the file exposes.
 2. The reporter may review the file and redact further values by hand before uploading it.
 3. If the data cannot be made public at all, the supported route is to contact a maintainer

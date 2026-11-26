@@ -1,6 +1,6 @@
 site_name: aiohomematic
 site_description: Modern async Python library for Homematic and HomematicIP devices
-site_url: https://sukramj.github.io/aiohomematic/
+site_url: https://sukramj.dev/aiohomematic/
 repo_url: https://github.com/sukramj/aiohomematic
 repo_name: sukramj/aiohomematic
 edit_uri: edit/main/docs/

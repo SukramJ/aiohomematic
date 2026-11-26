@@ -6,7 +6,7 @@ This directory contains the documentation for aiohomematic, built with [MkDocs](
 
 The documentation is automatically deployed to GitHub Pages:
 
-**https://sukramj.github.io/aiohomematic/**
+**https://sukramj.dev/aiohomematic/**
 
 ## Building Locally
 

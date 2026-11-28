@@ -1,3 +1,19 @@
+# Version 2026.11.10 (2026-11-28)
+
+## What's Changed
+
+### Fixed
+
+- **A virtual channel of an RF dimmer shows its own level, and a dimmer command is no longer dropped when
+  only `LEVEL_REAL` shows the target.** For RF dimmers with virtual channels (e.g. HM-LC-Dim1PWM-CV) the
+  state of every channel took `LEVEL` or `LEVEL_REAL`, whichever changed last, and the report in
+  homematicip_local#1405 shows `LEVEL_REAL` following the output of all channels together. A secondary
+  channel therefore flipped between its own level and the output, and `turn_on` to the level the output
+  already had was dropped while the channel's own `LEVEL` was 0 %, so the light went off once the other
+  channel released. Secondary channels now report their own `LEVEL`; the primary channel still reports the
+  output. `turn_on`, `turn_off` and brightness commands are dropped only when the own `LEVEL` and the
+  reported state both show the target. `group_brightness` still carries `LEVEL_REAL`.
+
 # Version 2026.11.9 (2026-11-24)
 
 ## What's Changed

@@ -242,6 +242,17 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint, Li
     _validity_relevant_fields: ClassVar[frozenset[Field]] = frozenset({Field.LEVEL})
 
     @property
+    def _channel_brightness(self) -> int | None:
+        """Return brightness based on the LEVEL of the channel a command writes to."""
+        return self.level_to_brightness(self._dp_level.value or _MIN_BRIGHTNESS)
+
+    @property
+    def _channel_is_on(self) -> bool:
+        """Return on/off based on the LEVEL of the channel a command writes to."""
+        level = self._dp_level.value
+        return level is not None and level > _DIMMER_OFF
+
+    @property
     def _commanded_brightness(self) -> int | None:
         """Return brightness based on the last commanded LEVEL (action channel)."""
         return self.level_to_brightness(self._effective_level or _MIN_BRIGHTNESS)
@@ -273,13 +284,21 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint, Li
         than the state channel, use it instead — the state channel is about
         to catch up and the 4 ms gap would otherwise cause a flicker
         (#3177 follow-up).
+
+        A secondary channel of an RF dimmer with virtual channels reads its
+        own ``LEVEL``: its ``LEVEL_REAL`` follows the output that all virtual
+        channels drive together, so the state flipped between the own level
+        and the output, whichever event came last (homematicip_local#1405).
+        Only the primary channel reports the output, as with covers.
         """
         # HmIP dimmers: 2.7.0 behaviour — read the action channel directly
         # (optimistic priority is already applied inside _dp_level.value).
         if self._dp_group_level.parameter != Parameter.LEVEL_REAL:
             return self._dp_level.value
 
-        # RF dimmer path below.
+        # RF dimmer path below. Secondary virtual channels: own LEVEL only.
+        if self.usage != DataPointUsage.CDP_PRIMARY:
+            return self._dp_level.value
         if self._dp_level.is_optimistic:
             return self._dp_level.value
         if (pending := self._dp_level.unconfirmed_last_value_send) is not None:
@@ -378,13 +397,26 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint, Li
             return True
         if kwargs.get(_StateChangeArg.RAMP_TIME) is not None:
             return True
-        if kwargs.get(_StateChangeArg.ON) is not None and self._commanded_is_on is not True and len(kwargs) == 1:
-            return True
-        if kwargs.get(_StateChangeArg.OFF) is not None and self._commanded_is_on is not False and len(kwargs) == 1:
+        # A command is dropped only when both the channel it writes (LEVEL) and the reported state
+        # show the target. On the primary channel of an RF dimmer the state follows LEVEL_REAL, the
+        # output of all virtual channels, which can equal the target while the own LEVEL differs;
+        # dropping the command then left the own channel off (homematicip_local#1405). For HmIP
+        # dimmers and secondary channels both values are the own LEVEL.
+        if (
+            kwargs.get(_StateChangeArg.ON) is not None
+            and (self._commanded_is_on is not True or not self._channel_is_on)
+            and len(kwargs) == 1
+        ):
             return True
         if (
-            brightness := kwargs.get(_StateChangeArg.BRIGHTNESS)
-        ) is not None and brightness != self._commanded_brightness:
+            kwargs.get(_StateChangeArg.OFF) is not None
+            and (self._commanded_is_on is not False or self._channel_is_on)
+            and len(kwargs) == 1
+        ):
+            return True
+        if (brightness := kwargs.get(_StateChangeArg.BRIGHTNESS)) is not None and (
+            brightness != self._commanded_brightness or brightness != self._channel_brightness
+        ):
             return True
         if (hs_color := kwargs.get(_StateChangeArg.HS_COLOR)) is not None and hs_color != self.hs_color:
             return True

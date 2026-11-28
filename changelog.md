@@ -1,3 +1,16 @@
+# Version 2026.11.11 (2026-11-28)
+
+## What's Changed
+
+### Fixed
+
+- **The primary channel of an RF dimmer with virtual channels shows the output while another channel holds
+  it.** The device sends `LEVEL_REAL` after every `LEVEL` event; when the output stayed where it was, the
+  unchanged value did not count as newer, so the primary channel's own `LEVEL` won. Switching channel 1 off
+  while channel 2 kept the light at 100 % showed channel 1 off (homematicip_local#1405). `LEVEL_REAL` now
+  counts as reported whenever its event arrives. During a ramp not started by a command (e.g. a direct link),
+  the primary channel keeps showing the previous output until the ramp ends.
+
 # Version 2026.11.10 (2026-11-28)
 
 ## What's Changed

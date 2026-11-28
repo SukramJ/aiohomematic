@@ -560,6 +560,71 @@ class TestCustomDpDimmer:
             (TEST_DEVICES, True, None, None),
         ],
     )
+    async def test_cedimmer_rf_primary_follows_unchanged_level_real(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """The primary channel shows the output when LEVEL_REAL is re-sent unchanged after LEVEL (#1405)."""
+        central, _, _ = central_client_factory_with_homegear_client
+        primary: CustomDpDimmer = cast(CustomDpDimmer, get_prepared_custom_data_point(central, "VCU0000079", 1))
+        virtual: CustomDpDimmer = cast(CustomDpDimmer, get_prepared_custom_data_point(central, "VCU0000079", 2))
+
+        async def send(*, channel_no: int, parameter: str, value: float) -> None:
+            await central.event_coordinator.data_point_event(
+                interface_id=const.INTERFACE_ID,
+                channel_address=f"VCU0000079:{channel_no}",
+                parameter=parameter,
+                value=value,
+            )
+
+        async def send_level_real(*, value: float) -> None:
+            for channel_no in (1, 2, 3):
+                await send(channel_no=channel_no, parameter="LEVEL_REAL", value=value)
+
+        # Event order from the log in homematicip_local#1405: every LEVEL event is followed by
+        # LEVEL_REAL on all channels, at the start of a ramp with the output the device had.
+        await send(channel_no=1, parameter="LEVEL", value=0.0)
+        await send(channel_no=2, parameter="LEVEL", value=0.005)
+        await send_level_real(value=0.0)
+        await send(channel_no=2, parameter="LEVEL", value=1.0)
+        await send_level_real(value=1.0)
+        assert primary.is_on is True
+        assert virtual.is_on is True
+
+        # Channel 1 ramps up by a direct link and back down; channel 2 holds the output at 100 %.
+        for level in (0.57, 1.0, 0.505, 0.0):
+            await send(channel_no=1, parameter="LEVEL", value=level)
+            await send_level_real(value=1.0)
+            assert primary.is_on is True
+            assert primary.brightness == 255
+        assert primary._dp_level.value == 0.0
+        assert virtual.is_on is True
+
+        # Channel 2 ramps down: the output stays at 100 % until the ramp ends, then both are off.
+        await send(channel_no=2, parameter="LEVEL", value=0.995)
+        await send_level_real(value=1.0)
+        assert primary.is_on is True
+        await send(channel_no=2, parameter="LEVEL", value=0.0)
+        await send_level_real(value=0.0)
+        assert primary.is_on is False
+        assert virtual.is_on is False
+
+        # Before LEVEL_REAL follows, a newer LEVEL is shown (4 ms gap, #3177 follow-up).
+        await send(channel_no=1, parameter="LEVEL", value=0.4)
+        assert primary.brightness == 102
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
     async def test_cedimmer_rf_virtual_channel_own_level(
         self,
         central_client_factory_with_homegear_client,

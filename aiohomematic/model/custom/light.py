@@ -281,9 +281,16 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint, Li
         channel is the stable mirror (#3166). The ramp window is bridged
         by the optimistic value and ``unconfirmed_last_value_send`` (#3177,
         #3178, #3179). When the action channel was modified more recently
-        than the state channel, use it instead — the state channel is about
-        to catch up and the 4 ms gap would otherwise cause a flicker
-        (#3177 follow-up).
+        than the state channel last reported, use it instead — the state
+        channel is about to catch up and the 4 ms gap would otherwise cause a
+        flicker (#3177 follow-up). The state channel counts as reported when
+        an event arrives, even with an unchanged value: the device sends
+        ``LEVEL_REAL`` after every ``LEVEL`` event, and with virtual channels
+        the output can stay where it was while the primary channel's own
+        ``LEVEL`` changes, which showed the primary channel off while another
+        channel held the output on (homematicip_local#1405). As a
+        consequence, during a ramp not started by a command the primary
+        channel shows the output it had until the ramp ends.
 
         A secondary channel of an RF dimmer with virtual channels reads its
         own ``LEVEL``: its ``LEVEL_REAL`` follows the output that all virtual
@@ -306,7 +313,7 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint, Li
         level_value = self._dp_level.value
         group_level_value = self._dp_group_level.value
         if level_value is not None and group_level_value is not None:
-            if self._dp_level.modified_at > self._dp_group_level.modified_at:
+            if self._dp_level.modified_at > self._dp_group_level.refreshed_at:
                 return level_value
             return group_level_value
         if group_level_value is not None:

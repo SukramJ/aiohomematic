@@ -548,6 +548,108 @@ class TestCustomDpDimmer:
         await level_event(0.7)
         assert light.last_level == 0.7
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_cedimmer_rf_virtual_channel_own_level(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """A virtual channel reads its own LEVEL; a command is dropped only when LEVEL is at target (#1405)."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        primary: CustomDpDimmer = cast(CustomDpDimmer, get_prepared_custom_data_point(central, "VCU0000079", 1))
+        virtual: CustomDpDimmer = cast(CustomDpDimmer, get_prepared_custom_data_point(central, "VCU0000079", 2))
+        assert primary.usage == DataPointUsage.CDP_PRIMARY
+        assert virtual.usage == DataPointUsage.CDP_SECONDARY
+
+        async def send(*, channel_no: int, parameter: str, value: float) -> None:
+            await central.event_coordinator.data_point_event(
+                interface_id=const.INTERFACE_ID,
+                channel_address=f"VCU0000079:{channel_no}",
+                parameter=parameter,
+                value=value,
+            )
+
+        def level_call(*, channel_no: int, value: float) -> Any:
+            return call.set_value(
+                channel_address=f"VCU0000079:{channel_no}",
+                paramset_key=ParamsetKey.VALUES,
+                parameter="LEVEL",
+                value=value,
+                wait_for_callback=WAIT_FOR_CALLBACK,
+                priority=CommandPriority.HIGH,
+                retry=True,
+            )
+
+        # Channel 1 switched on by a direct link: output at 100 %, channel 2 holds 0 %.
+        await send(channel_no=1, parameter="LEVEL", value=1.0)
+        await send(channel_no=2, parameter="LEVEL", value=0.0)
+        for channel_no in (1, 2):
+            await send(channel_no=channel_no, parameter="LEVEL_REAL", value=1.0)
+
+        # Channel 2 shows its own LEVEL, the output stays available as group_brightness.
+        assert virtual.is_on is False
+        assert virtual.brightness == 0
+        assert virtual.group_brightness == 255
+        assert primary.is_on is True
+
+        # The command to channel 2 is sent although LEVEL_REAL already shows 100 %.
+        call_count = len(mock_client.method_calls)
+        await virtual.turn_on(brightness=255)
+        assert len(mock_client.method_calls) == call_count + 1
+        assert mock_client.method_calls[-1] == level_call(channel_no=2, value=1.0)
+        await send(channel_no=2, parameter="LEVEL", value=1.0)
+        assert virtual.is_on is True
+
+        # Own LEVEL at target: the command is dropped.
+        call_count = len(mock_client.method_calls)
+        await virtual.turn_on(brightness=255)
+        await virtual.turn_on()
+        assert call_count == len(mock_client.method_calls)
+
+        # Channel 1 released by its button while channel 2 keeps the output at 100 %: channel 2 stays on.
+        await send(channel_no=1, parameter="LEVEL", value=0.0)
+        assert virtual.is_on is True
+
+        # The output changes after channel 1 went to 0 %: channel 1 shows the output, yet a command to
+        # 100 % is sent because its own LEVEL is 0 %.
+        await send(channel_no=1, parameter="LEVEL_REAL", value=0.5)
+        await send(channel_no=1, parameter="LEVEL_REAL", value=1.0)
+        assert primary.is_on is True
+        assert primary.brightness == 255
+        call_count = len(mock_client.method_calls)
+        await primary.turn_on(brightness=255)
+        assert len(mock_client.method_calls) == call_count + 1
+        assert mock_client.method_calls[-1] == level_call(channel_no=1, value=1.0)
+
+        # Own LEVEL and output at target: the command is dropped.
+        await send(channel_no=1, parameter="LEVEL", value=1.0)
+        await send(channel_no=1, parameter="LEVEL_REAL", value=1.0)
+        call_count = len(mock_client.method_calls)
+        await primary.turn_on(brightness=255)
+        await primary.turn_on()
+        assert call_count == len(mock_client.method_calls)
+
+        # Turning channel 2 off is sent, and dropped once its LEVEL is 0 while the output stays on.
+        call_count = len(mock_client.method_calls)
+        await virtual.turn_off()
+        assert len(mock_client.method_calls) == call_count + 1
+        assert mock_client.method_calls[-1] == level_call(channel_no=2, value=0.0)
+        await send(channel_no=2, parameter="LEVEL", value=0.0)
+        assert virtual.is_on is False
+        call_count = len(mock_client.method_calls)
+        await virtual.turn_off()
+        assert call_count == len(mock_client.method_calls)
+
 
 class TestCustomDpColorDimmerEffect:
     """Tests for CustomDpColorDimmerEffect data points."""
